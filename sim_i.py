@@ -1,7 +1,7 @@
 
 from methods import * 
 from rrt_smooth import *
-np.random.seed(218)
+#np.random.seed(218)
 
 
 
