@@ -14,7 +14,7 @@ Refines rrt paths
 Contains commonly used the methods
 
 ## isovist.py
-Calculats isovists for map
+Calculates isovist for map
 
 ## my_rrt.py
 Creates a path between points
