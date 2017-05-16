@@ -12,15 +12,22 @@ def make_gauss( x, y, ss=100 ):
         return np.exp( -(1.0/(2.0*ss)) * ( (X.astype('float32')-x)**2.0 + (Y.astype('float32')-y)**2.0 ) )
 
 def make_heatmap( pts, ss=100 ):
-        # pts is a list of 2-tuples.  build a simple kde.
+        # pts is a list of 2-tuples - should be between [0,1].  build a simple kde.
         tmp = np.zeros((500,500))
         for p in pts:
                 tmp += make_gauss( 500.0*p[0], 500.0*p[1], ss=ss )
-#                tmp[ int(500.0*p[1]), int(500.0*p[0]) ] = 2.0
         tmp = tmp / float( len( pts ) )
         return tmp
 
-def path_kde( set_of_rrts, cnt=300, ss=100 ):
+def path_to_heatmap( path, ss=100 ):
+        # assumes that path is a list of 2-tuples.  assumes each tuple is in [0,1]
+        cnt = len( path )
+        heatmap = np.zeros(( 500,500,cnt ))
+        for t in range(len(path)):
+                heatmap[:,:,t] = make_heatmap( [path[t]], ss=ss )
+        return heatmap
+
+def multiple_paths_to_heatmap( set_of_rrts, cnt=300, ss=100 ):
         # construct a heat map of occupancy probabilities for each time
         heatmap = np.zeros( (500,500,cnt) )
         for t in range( heatmap.shape[2] ):
