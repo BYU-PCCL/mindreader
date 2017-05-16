@@ -92,7 +92,7 @@ def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit
     return run_rrt( start_pt, goal_pt, x1, y1, x2, y2, bias, plot, scale=scale, heat=heat )
 
 def biasedflip(prob=1):
-   if rand.randint(1,100) < (prob * 100):
+   if rand.randint(1,1000) < (prob * 100):
       return 1
    return 0
 
@@ -122,15 +122,15 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
             temp_pt = nearest_point + ndiff
 
-            if heat != None:
+            if heat is not None:
                 danger = heat[int(temp_pt[0][1]*500)][int(temp_pt[0][0]*500)]
 
-                #keep = biasedflip(1-danger)
-                if danger > 0:
-                    keep = 0
-                    print "DO NOT KEEP", danger, int(temp_pt[0][1]*500), int(temp_pt[0][0]*500)
-                else:
-                    keep = 1
+                keep = biasedflip(1-danger)
+                # if danger > 0:
+                #     keep = 0
+                #     print "DO NOT KEEP", danger, int(temp_pt[0][1]*500), int(temp_pt[0][0]*500)
+                # else:
+                #     keep = 1
             else:
                 keep =1
 
@@ -213,7 +213,7 @@ def create_temp_heat_map():
                     intensity[i][j] = 0.50
 
             if i > 150 and i < 225:
-                if j > 35 and j < 150:
+                if j > 135 and j < 250:
                     intensity[i][j] = 0.88
 
             if i > 50 and i < 300:
