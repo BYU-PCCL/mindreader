@@ -1,5 +1,8 @@
 import numpy as np
 import time
+import matplotlib.pyplot as plt
+import random as rand
+np.random.seed(218)
 
 STEP_SIZE = .01
 
@@ -76,7 +79,7 @@ def distance_to_other_points( pt, pts ):
     diffs = (pts - pt)**2.0
     return np.sum( diffs, axis=1, keepdims=True )
 
-def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit=20000, scale=1):
+def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit=20000, scale=1, heat=None):
     '''
     start_pt: 1 x 2 np array
     goal_pt: 1 x 2 np array
@@ -86,28 +89,61 @@ def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit
     returns a list of length 2 np arrays describing the path from `start_pt` to `goal_pt`
     '''
     x1, y1, x2, y2 = polygons_to_segments( polygons )
-    return run_rrt( start_pt, goal_pt, x1, y1, x2, y2, bias, plot, scale=scale )
+    return run_rrt( start_pt, goal_pt, x1, y1, x2, y2, bias, plot, scale=scale, heat=heat )
 
-def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  bias=0.75, plot=False, step_limit=20000, scale=1 ):
+def biasedflip(prob=1):
+   if rand.randint(1,100) < (prob * 100):
+      return 1
+   return 0
+
+def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  bias=0.75, plot=False, step_limit=20000, scale=1, heat=None ):
     nodes = start_pt
     parents = np.atleast_2d( [0] )
 
     for i in range( 0, step_limit ):
-        random_point = np.random.rand(1,2) * scale
 
-        # find nearest node
-        distances = distance_to_other_points( random_point, nodes )
-        nearest_ind = np.argmin( distances )
-        nearest_point = nodes[ nearest_ind:nearest_ind+1, : ]
+        while True:
+            random_point = np.random.rand(1,2) * scale
 
-        # take a step towards the goal
-        if np.random.rand() > bias:
-            ndiff = goal_pt - nearest_point
-        else:
-            ndiff = random_point - nearest_point
+            # find nearest node
+            distances = distance_to_other_points( random_point, nodes )
+            nearest_ind = np.argmin( distances )
+            nearest_point = nodes[ nearest_ind:nearest_ind+1, : ]
 
-        ndiff = (scale * STEP_SIZE) * ndiff / np.sqrt( np.sum( ndiff*ndiff ) )
-        new_pt = nearest_point + ndiff
+            new_pt = None
+        
+            # take a step towards the goal
+            if np.random.rand() > bias:
+                ndiff = goal_pt - nearest_point
+            else:
+                ndiff = random_point - nearest_point
+
+            ndiff = (scale * STEP_SIZE) * ndiff / np.sqrt( np.sum( ndiff*ndiff ) )
+
+            temp_pt = nearest_point + ndiff
+
+            if heat != None:
+                danger = heat[int(temp_pt[0][1]*500)][int(temp_pt[0][0]*500)]
+
+                #keep = biasedflip(1-danger)
+                if danger > 0:
+                    keep = 0
+                    print "DO NOT KEEP", danger, int(temp_pt[0][1]*500), int(temp_pt[0][0]*500)
+                else:
+                    keep = 1
+            else:
+                keep =1
+
+            
+            if keep:
+                new_pt = temp_pt
+                break
+
+        # _danger = heat[int(new_pt[0][1]*500)][int(new_pt[0][0]*500)]
+        # print "OUT ", _danger, int(new_pt[0][1]*500), int(new_pt[0][0]*500)
+
+      
+        
 
         if distance_to_other_points( new_pt, goal_pt ) < (.005 * scale):
             #print('i', i)
@@ -125,9 +161,14 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
                     plt.plot( [ path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1] ], 'b' )
                 plt.scatter( start_pt[0,0], start_pt[0,1] )
                 plt.scatter( goal_pt[0,0], goal_pt[0,1] )
+
                 plt.show()
 
             path.reverse()
+
+            path.append(goal_pt[0])
+
+            #print path[-1], goal_pt[0]
 
             return path
 
@@ -155,15 +196,73 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
     #print('No path found!')
     return []
 
+def create_temp_heat_map():
+    x = np.arange(0, 500)
+    y = np.arange(0, 500)
+
+    intensity = np.zeros((x.shape[0], y.shape[0]))
+    for i in xrange(x.shape[0]):
+        for j in xrange(y.shape[0]):
+            intensity[i][j] = 0
+            if i > 300 and i < 400:
+                if j > 300 and j < 400:
+                    intensity[i][j] = 0.75
+
+            if i > 100 and i < 150:
+                if j > 300 and j < 350:
+                    intensity[i][j] = 0.50
+
+            if i > 150 and i < 225:
+                if j > 35 and j < 150:
+                    intensity[i][j] = 0.88
+
+            if i > 50 and i < 300:
+                if j > 250 and j < 300:
+                    intensity[i][j] = 0.90
+
+            if i > 300 and i < 450:
+                if j > 50 and j < 150:
+                    intensity[i][j] = 0.30
+
+
+    #setup the 2D grid with Numpy
+    x, y = np.meshgrid(x, y)
+
+    #convert intensity (list of lists) to a numpy array for plotting
+    intensity = np.array(intensity)
+
+    return x, y, intensity
+
+
 # ==============================================================
 
 if __name__ == '__main__':
     polygons = load_polygons( "./paths.txt" )
+    x1, y1, x2, y2 = polygons_to_segments( polygons )
     
-    start_pt = np.atleast_2d( [0.1,0.1] )
-    goal_pt = np.atleast_2d( [0.9,0.9] )
+    start_pt = np.atleast_2d( [182.0/500,12.0/500] )
+    goal_pt = np.atleast_2d( [409.0/500,353.0/500] )
 
-    path = run_rrt_poly( start_pt, goal_pt, polygons, plot=True)
+
+    x, y, intensity = create_temp_heat_map()
+    path = run_rrt_poly( start_pt, goal_pt, polygons, heat = intensity, plot=False)
+
+    plt.pcolormesh(x, y, intensity, cmap='jet')
+    plt.colorbar()
+
+    for i in range(0, x1.shape[0]):
+        plt.plot( [ x1[i] * 500, x2[i] * 500 ], [ y1[i] * 500, y2[i] * 500 ], 'k' )
+                
+    for i in range( 0, len(path)-1 ):
+        plt.plot( [ path[i][0] * 500, path[i+1][0] * 500 ], [ path[i][1] * 500, path[i+1][1] * 500], 'w' )
+                
+
+    plt.scatter( start_pt[0,0] * 500, start_pt[0,1]  * 500)
+    plt.scatter( goal_pt[0,0] * 500, goal_pt[0,1] * 500)
+    plt.ylim((0,500))
+
+
+    plt.show() #boom
 
 mypath = [0.88326248,  0.88557536,
 0.90324988,  0.8397441 ,
