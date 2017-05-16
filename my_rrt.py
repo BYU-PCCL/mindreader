@@ -94,7 +94,7 @@ def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit
 def biased_flip(prob=1):
 	if prob == 1:
 		return 1
-	if rand.randint(1,100) < (prob * 100)**0.5:
+	if rand.randint(1,100) < (prob * 100.0)**0.5:
 	  return 1
 	return 0
 
