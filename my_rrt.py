@@ -3,7 +3,6 @@ import time
 import matplotlib.pyplot as plt
 import random as rand
 
-#np.random.seed(1)
 
 STEP_SIZE = .01
 
@@ -111,6 +110,20 @@ def parent_count(nearest_ind, parents):
 		count += 1
 	return count
 
+parent_mem = {}
+
+def parent_count_mem(nearest_ind, parents):
+	count = 0
+	while nearest_ind != 0:
+		if nearest_ind in parent_mem:
+			count = parent_mem[nearest_ind] + 1
+			break
+		nearest_ind = parents[ nearest_ind, 0 ]
+		count += 1
+
+	parent_mem[nearest_ind] = count
+	return count
+
 def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  bias=0.75, plot=False, step_limit=20000, scale=1, heat=None ):
     nodes = start_pt
     parents = np.atleast_2d( [0] )
@@ -152,7 +165,8 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
 
             if heat is not None:
-            	time_step = parent_count(nearest_ind, parents)
+            	ts = parent_count_mem(nearest_ind, parents)
+            	#time_step = parent_count(nearest_ind, parents)
                 danger = heat[int(temp_pt[0][1]*500)][int(temp_pt[0][0]*500)][time_step]
 
                 keep = biased_flip(1-danger)
@@ -174,7 +188,6 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
         
         if distance_to_other_points( new_pt, goal_pt ) < (.005 * scale):
             path = [ new_pt[0,:] ]
-            
             while nearest_ind != 0:
                 path.append( nodes[nearest_ind,:] )
                 nearest_ind = parents[ nearest_ind, 0 ]
@@ -266,7 +279,6 @@ if __name__ == '__main__':
 
     #show first layer of heat cube
     inten = intensity[:,:,0]
-    print inten.shape
     plt.pcolormesh(x, y, inten, cmap='jet')
     plt.colorbar()
 
