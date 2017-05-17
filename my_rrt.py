@@ -185,8 +185,8 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
         # print "ndiff a :", ndiff[0][1]*500, ndiff[0][0]*500, "mag: ", mag( (ndiff[0][1]*500, ndiff[0][0]*500),(0,0))
         # print "new pt:", new_pt[0][1]*500, new_pt[0][0]*500
-        
-        if distance_to_other_points( new_pt, goal_pt ) < (.005 * scale):
+        #print "distance_to_other_points( new_pt, goal_pt ) :", distance_to_other_points( new_pt, goal_pt ) 
+        if distance_to_other_points( new_pt, goal_pt ) <= (.0001 * scale):
             path = [ new_pt[0,:] ]
             while nearest_ind != 0:
                 path.append( nodes[nearest_ind,:] )
@@ -207,7 +207,11 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
             path.reverse()
 
-            path.append(goal_pt[0])
+            path.append(goal_pt[0,:])
+
+            # for i in xrange(1,len(path)):
+            # 	print path[i-1], path[i]
+            # 	print distance_to_other_points( np.asarray([path[i-1]]), np.asarray([path[i]]) )
 
             return path
 
@@ -272,6 +276,8 @@ if __name__ == '__main__':
 
 
     x, y, intensity = create_temp_heat_map()
+    #heatcube = np.load("heatcube.npy")
+    #print heatcube.shape
 
 
     path = run_rrt_poly( start_pt, goal_pt, polygons, heat = intensity, plot=False)
