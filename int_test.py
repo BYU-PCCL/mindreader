@@ -13,9 +13,13 @@ pf = q.PF( model=model, cnt=100 )
 
 data = [[ False, 1 ]] * 50
 
+print "Initializing particles..."
 pf.init_particles()
 
+print "Filtering..."
 for t in range( len(data) ):
+    print "  t=%d" % t
+
     # data[t] should be a tuple of (seen,heard)
     # seen is boolean; heard is numeric
 
