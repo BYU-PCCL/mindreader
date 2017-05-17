@@ -48,11 +48,6 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 	paths = load_data("NaiveAgentPaths/" + test_name + "_paths")
 	#paths = combine_paths(paths)
 
-	###########################
-	# Smooth RRT - RRT refiner
-	###########################
-	paths = smooth(paths)
-	###########################
 
 	polygonSegments = load_polygons()
 
@@ -72,6 +67,11 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
   ###################################################################################
   ###################################################################################
 
+  	###########################
+	# Smooth RRT - RRT refiner
+	###########################
+	paths = smooth(paths)
+	###########################
 
 	INTRUDER_SEEN_COUNT = 0 
 
@@ -107,7 +107,11 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 		else:
 			intruder_path = run_rrt( scale_down(IntruderStart), scale_down(IntruderGoal), X1, Y1, X2, Y2)
 		
-
+		###########################
+		# Smooth RRT - RRT refiner
+		###########################
+		intruder_path = smooth(intruder_path)
+		###########################
 		###############################################################################
 		#				         UAV THINK/THOUGHT (PRE-PROGRAMMED)
 		###############################################################################
@@ -134,7 +138,8 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 		heard = [0]*N
 
 
-		ai = 0
+		#ai = 0
+		ai = np.random.randint(len(UAV_path)-1)
 		ii = 0
 
 		on_going = True
@@ -148,6 +153,8 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 				for polygon in polygonSegments:
 					for segment in polygon:
 						pygame.draw.line(screen, (0, 0, 0), segment[0], segment[1],2)
+				pygame.draw.circle(screen, (0,255,0), IntruderStart, 5)
+				pygame.draw.circle(screen, (255,0,0), IntruderGoal, 5)
 				
 				Update()
 
@@ -156,8 +163,10 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 			pre_ii = ii
 			pre_ai = ai
 
+			print "INTRUDER:"
 			ii = travel(ii, intruder_path, amt=10, bound=14)
-			ai = travel(ai, UAV_path, amt=20, bound=36)
+			print "\nAGENT:"
+			ai = travel(ai, UAV_path, amt=25, bound=31)
 
 
 			##################################### DRAW ###############################
@@ -236,9 +245,7 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 				print "UAV_seen:", UAV_seen
 
 			###############################################
-
-			#print time_step
-
+			print ii, len(intruder_path) - 1
 			#If Intruder Reaches Goal
 			if ii == len(intruder_path) - 1:
 				on_going = False
@@ -271,4 +278,4 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 			                    
 
 if __name__ == '__main__':
-    main(test_name = "random", headless=False)
+    main(test_name = "grid", headless=False)
