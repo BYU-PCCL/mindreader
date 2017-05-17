@@ -46,7 +46,7 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 
 	########################CORE####################################
 	paths = load_data("NaiveAgentPaths/" + test_name + "_paths")
-	paths = combine_paths(paths)
+	#paths = combine_paths(paths)
 
 	###########################
 	# Smooth RRT - RRT refiner
