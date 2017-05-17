@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import random as rand
 
 
-STEP_SIZE = .01
+STEP_SIZE = .03
 
 # python -m cProfile -s tottime my_rrt.py
 
@@ -131,9 +131,11 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
     time_step = 0
     for i in range( 0, step_limit ):
     	
-    	expand_flip = np.random.rand() 
+    	#expand_flip = np.random.rand() 
         while True:
+        	
             random_point = np.random.rand(1,2) * scale
+            expand_flip = np.random.rand()
 
             # find nearest node
             distances = distance_to_other_points( random_point, nodes )
@@ -161,8 +163,8 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 	            endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
 
             if intersection_indicators.any():
+            	#print "Intersects"
             	continue
-
 
             if heat is not None:
             	ts = parent_count_mem(nearest_ind, parents)
@@ -210,8 +212,8 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
             path.append(goal_pt[0,:])
 
             # for i in xrange(1,len(path)):
-            # 	print path[i-1], path[i]
-            # 	print distance_to_other_points( np.asarray([path[i-1]]), np.asarray([path[i]]) )
+            # 	#print path[i-1], path[i]
+            # 	print "distance:", distance_to_other_points( np.asarray([path[i-1]])* 500, np.asarray([path[i]])*500 ) 
 
             return path
 
