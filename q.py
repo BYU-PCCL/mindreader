@@ -37,11 +37,13 @@ Expects a model object X.  This object must support the following methods:
 
 
 class PF( object ):
-    def __init__( self, cnt=100, model=None ):
+    def __init__( self, model=None, cnt=100 ):
 
         self.cnt = cnt  # number of particles
         self.model = model
         self.cond_data_db = {}
+
+        self.cur_trace_score = 0.0
 
         # register the available elementary random primitives
         self.choice = self.make_erp( choice_erp )
@@ -76,10 +78,14 @@ class PF( object ):
             ts = self.part_state[i]
 
             # new state
-            tsp = self.model.trans( self, gs, ts, glob_conds, state_conds )
+            tsp = self.model.trans( self, gs, ts,
+                                    glob_conds=glob_conds, state_conds=state_conds )
+
+            self.cur_trace_score = 0.0
 
             # generate (or condition on) observation
-            obs = self.model.obs( self, gs, tsp, glob_conds, state_conds )
+            obs = self.model.obs( self, gs, tsp,
+                                  glob_conds=glob_conds, state_conds=state_conds )
 
             self.part_state[i] = tsp
             self.part_score[i] = self.part_score[i] + self.cur_trace_score

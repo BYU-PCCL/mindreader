@@ -1,5 +1,7 @@
 
-import q
+import numpy as np
+import isovist
+from methods_slim import load_data, direction, noise_level
 
 '''
 This is the intruder model.
@@ -23,10 +25,13 @@ This is the intruder model.
   -> if using some sort of optimal planner, then no distribution.
 
 '''
-# ====================================================
 
-def direction (now, before):
-	return (now[0]-before[0], now[1] - before[1])
+types = [ 'alley', 'grid', 'random', 'swirl_in', 'swirl_out' ]
+
+uav_path_types = []
+for test_name in types:
+    path = load_data("NaiveAgentPaths/" + test_name + "_paths")
+    uav_path_types.append( path )
 
 # ====================================================
 #
@@ -38,21 +43,21 @@ def direction (now, before):
 # ====================================================
 
 class BasicIntruder( object ):
-    def __init__( self ):
-        pass
+    def __init__( self, isovist=None ):
+        self.isovist = isovist
 
     def condition( self, Q, obs_t ):
         Q.condition( name="seen_obs_t", value=obs_t[0] )
         Q.condition( name="heard_obs_t", value=obs_t[1] )
 
     def global_init( self, Q, glob_conds=None ):
-        uav_type = Q.randint( 5, name="uav_type" )
+        uav_type = Q.choice( p=np.asarray([1.0]*len(uav_path_types)), name="uav_type" )
         uav_path = uav_path_types[ uav_type ]
         return ( uav_type, uav_path )
 
     def state_init( self, Q, gs, state_conds=None ):
         uav_type, uav_path = gs
-        uav_loc_on_route = Q.randint( len(uav_path), name="init_loc" )
+        uav_loc_on_route = Q.choice( p=np.asarray([1.0]*len(uav_path)), name="init_loc" )
         return uav_loc_on_route
     
     def trans( self, Q, gs, ts, glob_conds=None, state_conds=None ):
@@ -64,7 +69,7 @@ class BasicIntruder( object ):
         uav_loc = uav_path[ uav_loc_on_route ]
 
         # sample next state
-        new_uav_loc_on_route = mod( uav_loc_on_route + 1, len(uav_path) )
+        new_uav_loc_on_route = np.mod( uav_loc_on_route + 1, len(uav_path) )
         return new_uav_loc_on_route
 
     def obs( self, Q, gs, ts, glob_conds=None, state_conds=None ):
@@ -84,10 +89,10 @@ class BasicIntruder( object ):
         # XXX I think this is backwards - should be from the intruder's perspective!
         # argh... need previous intruder location!
         fv = direction( uav_path[ uav_loc_on_route ],
-                        uav_path[ mod(uav_loc_on_route-1,len(uav_path)) ] )
+                        uav_path[ np.mod(uav_loc_on_route-1,len(uav_path)) ] )
 
-        intersections = isovist.GetIsovistIntersections( uav_loc, fv )
-        intruder_seen = isovist.FindIntruderAtPoint( int_loc, intersections )
+        intersections = self.isovist.GetIsovistIntersections( uav_loc, fv )
+        intruder_seen = self.isovist.FindIntruderAtPoint( int_loc, intersections )
         pval = 0.999*intruder_seen + 0.001*(1-intruder_seen)
         seen = Q.flip( p=pval, name="seen_obs_t" )
 
