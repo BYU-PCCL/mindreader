@@ -27,8 +27,8 @@ types = [ 'alley', 'grid', 'random', 'swirl_in', 'swirl_out' ]
 results = []
 for test_name in types:
     paths = load_data("NaiveAgentPaths/" + test_name + "_paths")
-    paths = combine_paths(paths)
-    paths = smooth(paths)
+    #paths = combine_paths(paths)
+    #paths = smooth(paths)
 
     results.append( path_to_heatmap(paths) )
 

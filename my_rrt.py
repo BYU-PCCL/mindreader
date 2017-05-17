@@ -1,5 +1,8 @@
 import numpy as np
 import time
+import matplotlib.pyplot as plt
+import random as rand
+
 
 STEP_SIZE = .01
 
@@ -76,7 +79,7 @@ def distance_to_other_points( pt, pts ):
     diffs = (pts - pt)**2.0
     return np.sum( diffs, axis=1, keepdims=True )
 
-def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit=20000, scale=1):
+def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit=20000, scale=1, heat=None):
     '''
     start_pt: 1 x 2 np array
     goal_pt: 1 x 2 np array
@@ -86,35 +89,109 @@ def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit
     returns a list of length 2 np arrays describing the path from `start_pt` to `goal_pt`
     '''
     x1, y1, x2, y2 = polygons_to_segments( polygons )
-    return run_rrt( start_pt, goal_pt, x1, y1, x2, y2, bias, plot, scale=scale )
+    return run_rrt( start_pt, goal_pt, x1, y1, x2, y2, bias, plot, scale=scale, heat=heat )
 
-def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  bias=0.75, plot=False, step_limit=20000, scale=1 ):
+def biased_flip(prob=1):
+	if prob == 1:
+		return 1
+	if rand.randint(1,100) < (prob * 100.0)**0.5:
+	  return 1
+	return 0
+
+def mag(one, two):
+	xs = one[0] - two[0]
+	ys = one[1] - two[1]
+	return (xs**2 + ys**2)**0.5
+
+def parent_count(nearest_ind, parents):
+	count = 0
+	while nearest_ind != 0:
+		nearest_ind = parents[ nearest_ind, 0 ]
+		count += 1
+	return count
+
+parent_mem = {}
+
+def parent_count_mem(nearest_ind, parents):
+	count = 0
+	while nearest_ind != 0:
+		if nearest_ind in parent_mem:
+			count = parent_mem[nearest_ind] + 1
+			break
+		nearest_ind = parents[ nearest_ind, 0 ]
+		count += 1
+
+	parent_mem[nearest_ind] = count
+	return count
+
+def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  bias=0.75, plot=False, step_limit=20000, scale=1, heat=None ):
     nodes = start_pt
     parents = np.atleast_2d( [0] )
 
+    time_step = 0
     for i in range( 0, step_limit ):
-        random_point = np.random.rand(1,2) * scale
+    	
+    	expand_flip = np.random.rand() 
+        while True:
+            random_point = np.random.rand(1,2) * scale
 
-        # find nearest node
-        distances = distance_to_other_points( random_point, nodes )
-        nearest_ind = np.argmin( distances )
-        nearest_point = nodes[ nearest_ind:nearest_ind+1, : ]
+            # find nearest node
+            distances = distance_to_other_points( random_point, nodes )
+            nearest_ind = np.argmin( distances )
+            nearest_point = nodes[ nearest_ind:nearest_ind+1, : ]
 
-        # take a step towards the goal
-        if np.random.rand() > bias:
-            ndiff = goal_pt - nearest_point
-        else:
-            ndiff = random_point - nearest_point
+            new_pt = None
+        
+            # take a step towards the goal
+            if expand_flip > bias:
+                ndiff = goal_pt - nearest_point
+            else:
+                ndiff = random_point - nearest_point
 
-        ndiff = (scale * STEP_SIZE) * ndiff / np.sqrt( np.sum( ndiff*ndiff ) )
-        new_pt = nearest_point + ndiff
+            ndiff = (scale * STEP_SIZE) * ndiff / np.sqrt( np.sum( ndiff*ndiff ) )
 
-        if distance_to_other_points( new_pt, goal_pt ) < (.005 * scale):
-            #print('i', i)
+            temp_pt = nearest_point + ndiff
+
+
+            int_x, int_y, intersection_indicators = line_intersect( 
+	            nearest_point[0,0], 
+	            nearest_point[0,1], 
+	            temp_pt[0,0], 
+	            temp_pt[0,1], 
+	            endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+
+            if intersection_indicators.any():
+            	continue
+
+
+            if heat is not None:
+            	ts = parent_count_mem(nearest_ind, parents)
+            	#time_step = parent_count(nearest_ind, parents)
+                danger = heat[int(temp_pt[0][1]*500)][int(temp_pt[0][0]*500)][time_step]
+
+                keep = biased_flip(1-danger)
+                # if danger > 0:
+                #     keep = 0
+                #     print "DO NOT KEEP", danger, int(temp_pt[0][1]*500), int(temp_pt[0][0]*500)
+                # else:
+                #     keep = 1
+            else:
+                keep =1
+
+            
+            if keep:
+                new_pt = temp_pt
+                break
+
+        # print "ndiff a :", ndiff[0][1]*500, ndiff[0][0]*500, "mag: ", mag( (ndiff[0][1]*500, ndiff[0][0]*500),(0,0))
+        # print "new pt:", new_pt[0][1]*500, new_pt[0][0]*500
+        #print "distance_to_other_points( new_pt, goal_pt ) :", distance_to_other_points( new_pt, goal_pt ) 
+        if distance_to_other_points( new_pt, goal_pt ) <= (.0001 * scale):
             path = [ new_pt[0,:] ]
             while nearest_ind != 0:
                 path.append( nodes[nearest_ind,:] )
                 nearest_ind = parents[ nearest_ind, 0 ]
+                
             path.append( nodes[0,:] )
 
             if plot == True:
@@ -125,45 +202,105 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
                     plt.plot( [ path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1] ], 'b' )
                 plt.scatter( start_pt[0,0], start_pt[0,1] )
                 plt.scatter( goal_pt[0,0], goal_pt[0,1] )
+
                 plt.show()
 
             path.reverse()
 
+            path.append(goal_pt[0,:])
+
+            # for i in xrange(1,len(path)):
+            # 	print path[i-1], path[i]
+            # 	print distance_to_other_points( np.asarray([path[i-1]]), np.asarray([path[i]]) )
+
             return path
 
-        # we'd like to expand from nearest_point to new_pt.  Does it cross a wall?
-        int_x, int_y, intersection_indicators = line_intersect( 
-            nearest_point[0,0], 
-            nearest_point[0,1], 
-            new_pt[0,0], 
-            new_pt[0,1], 
-            endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
 
-        if intersection_indicators.any():
-            # calculate nearest intersection and trim new_pt
-            intersections = np.atleast_2d( [ int_x[intersection_indicators], int_y[intersection_indicators] ] ).T
-            distances = distance_to_other_points( nearest_point, intersections )
-            closest_intersection_index = np.argmin( distances )
-            new_pt = intersections[ closest_intersection_index:closest_intersection_index+1, : ]
-            safety = new_pt - nearest_point
-            safety = scale * 0.001 * safety / np.sqrt( np.sum( safety*safety ) )
-            new_pt = new_pt - safety
 
         nodes = np.vstack(( nodes, new_pt ))
+       
         parents = np.vstack(( parents, nearest_ind ))
+        #raw_input()
+        
+      
 
     #print('No path found!')
     return []
+
+def create_temp_heat_map():
+    x = np.arange(0, 500)
+    y = np.arange(0, 500)
+
+    intensity = np.zeros((x.shape[0], y.shape[0], 200))
+    for i in xrange(x.shape[0]):
+        for j in xrange(y.shape[0]):
+            intensity[i,j,:] = 0
+            if i > 300 and i < 400:
+                if j > 300 and j < 400:
+                    intensity[i,j,:] = 0.75
+
+            if i > 100 and i < 150:
+                if j > 300 and j < 350:
+                    intensity[i,j,:] = 0.50
+
+            if i > 150 and i < 225:
+                if j > 135 and j < 250:
+                    intensity[i,j,:] = 0.88
+
+            if i > 50 and i < 300:
+                if j > 250 and j < 300:
+                    intensity[i,j,:] = 0.90
+
+            if i > 300 and i < 450:
+                if j > 50 and j < 150:
+                    intensity[i,j,:] = 0.30
+
+
+    #setup the 2D grid with Numpy
+    x, y = np.meshgrid(x, y)
+
+    #convert intensity (list of lists) to a numpy array for plotting
+    #intensity = np.array(intensity)
+
+    return x, y, intensity
+
 
 # ==============================================================
 
 if __name__ == '__main__':
     polygons = load_polygons( "./paths.txt" )
+    x1, y1, x2, y2 = polygons_to_segments( polygons )
     
-    start_pt = np.atleast_2d( [0.1,0.1] )
-    goal_pt = np.atleast_2d( [0.9,0.9] )
+    start_pt = np.atleast_2d( [182.0/500,12.0/500] )
+    goal_pt = np.atleast_2d( [409.0/500,353.0/500] )
 
-    path = run_rrt_poly( start_pt, goal_pt, polygons, plot=True)
+
+    x, y, intensity = create_temp_heat_map()
+    #heatcube = np.load("heatcube.npy")
+    #print heatcube.shape
+
+
+    path = run_rrt_poly( start_pt, goal_pt, polygons, heat = intensity, plot=False)
+
+
+    #show first layer of heat cube
+    inten = intensity[:,:,0]
+    plt.pcolormesh(x, y, inten, cmap='jet')
+    plt.colorbar()
+
+    for i in range(0, x1.shape[0]):
+        plt.plot( [ x1[i] * 500, x2[i] * 500 ], [ y1[i] * 500, y2[i] * 500 ], 'k' )
+                
+    for i in range( 0, len(path)-1 ):
+        plt.plot( [ path[i][0] * 500, path[i+1][0] * 500 ], [ path[i][1] * 500, path[i+1][1] * 500], 'w' )
+                
+
+    plt.scatter( start_pt[0,0] * 500, start_pt[0,1]  * 500)
+    plt.scatter( goal_pt[0,0] * 500, goal_pt[0,1] * 500)
+    plt.ylim((0,500))
+
+
+    plt.show() #boom
 
 mypath = [0.88326248,  0.88557536,
 0.90324988,  0.8397441 ,
