@@ -6,7 +6,7 @@ from rrt_smooth import *
 
 
 
-def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
+def main(test_name = "grid", smart_intruder=False, t=0, headless = True, save=0):
 
 	record = {}
 
@@ -75,7 +75,7 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 
 	INTRUDER_SEEN_COUNT = 0 
 
-	K = 1
+	K = 10
 	for k in tqdm(xrange(K)):
 		###############################################################################
 		#                        SAMPLE INTRUDER PATH
@@ -163,9 +163,9 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 			pre_ii = ii
 			pre_ai = ai
 
-			print "INTRUDER:"
+			#print "INTRUDER:"
 			ii = travel(ii, intruder_path, amt=10, bound=14)
-			print "\nAGENT:"
+			#print "\nAGENT:"
 			ai = travel(ai, UAV_path, amt=25, bound=31)
 
 
@@ -206,7 +206,7 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 			if intruder_seen:
 				INTRUDER_SEEN_COUNT += 1
 				time_seen = time_step
-				print "Intruder Detected!"
+				#print "Intruder Detected!"
 				
 				break
 			
@@ -245,11 +245,11 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 				print "UAV_seen:", UAV_seen
 
 			###############################################
-			print ii, len(intruder_path) - 1
+			#print ii, len(intruder_path) - 1
 			#If Intruder Reaches Goal
 			if ii == len(intruder_path) - 1:
 				on_going = False
-				print "Intruder Reaches Goal"
+				#print "Intruder Reaches Goal"
 				break
 
 			#If UAV Reaches Goal - Start Path AGAIN
@@ -263,7 +263,13 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 
 	record["INTRUDER_SEEN_COUNT"] = INTRUDER_SEEN_COUNT
 	record["INTRUDER_TIME_STEPS"] = len(intruder_path)
-	#save_data(record, "NA_NI_dist_data/" + test_name + "_sample_data_" + str(t))
+
+	if save:
+		directory_name = "NA_NI_dist_data"
+		if smart_intruder:
+			directory_name = "NA_SI_dist_data"
+
+		save_data(record, directory_name + "/" + test_name + "_sample_data_" + str(t))
 
 
 
@@ -276,6 +282,6 @@ def main(test_name = "grid", smart_intruder=False, t=0, headless = True):
 			pygame.time.delay(10)
 
 			                    
-
+import sys
 if __name__ == '__main__':
-    main(test_name = "grid", headless=False)
+    main(test_name = sys.argv[1], smart_intruder = int(sys.argv[2]), headless=int(sys.argv[3]), t=int(sys.argv[4]), save = 1)
