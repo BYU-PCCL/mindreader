@@ -15,7 +15,7 @@ for test_name in types:
     path = smooth( path )
     uav_path_types.append( path )
 
-PART_CNT = 100
+PART_CNT = 1000
 model = BasicIntruder( isovist )
 pf = q.PF( model=model, cnt=PART_CNT )
 

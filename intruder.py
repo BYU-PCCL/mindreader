@@ -123,7 +123,8 @@ class BasicIntruder( object ):
 
         intruder_seen = self.isovist.FindIntruderAtPoint( int_loc, intersections )
         pval = 0.999*intruder_seen + 0.001*(1-intruder_seen)
-        seen = Q.flip( p=pval, name="seen_obs_t" )
+#        seen = Q.flip( p=pval, name="seen_obs_t" )
+        seen = False
 
         noise = noise_level( int_loc, uav_loc )
         heard = Q.randn( mu=noise, sigma=1.0, name="heard_obs_t" )
