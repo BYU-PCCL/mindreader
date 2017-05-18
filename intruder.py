@@ -2,6 +2,8 @@
 import numpy as np
 import isovist
 from methods_slim import load_data, direction, noise_level
+from rrt_smooth import *
+import cPickle
 
 '''
 This is the intruder model.
@@ -30,7 +32,8 @@ types = [ 'alley', 'grid', 'random', 'swirl_in', 'swirl_out' ]
 
 uav_path_types = []
 for test_name in types:
-    path = load_data("NaiveAgentPaths/" + test_name + "_paths")
+    path = load_data( "NaiveAgentPaths/" + test_name + "_paths" )
+    path = smooth( path )
     uav_path_types.append( path )
 
 # ====================================================
@@ -45,6 +48,30 @@ for test_name in types:
 class BasicIntruder( object ):
     def __init__( self, isovist=None ):
         self.isovist = isovist
+
+        try:
+            self.intersection_cache = cPickle.load( open("./int_cache.cp") )
+        except:
+            self.precompute_and_save_intersections()
+
+    def precompute_and_save_intersections( self ):
+        print "Precomputing intersections..."
+        self.intersection_cache = []
+        for tind in range(len(types)):
+            print "  %s..." % types[tind]
+            uav_path = uav_path_types[tind]
+            tmp = []
+            for uav_loc_on_route in range(len(uav_path)):
+                uav_loc = uav_path[ uav_loc_on_route ]
+                fv = direction( uav_loc,
+                                uav_path[ np.mod(uav_loc_on_route-1,len(uav_path)) ] )
+                intersections = self.isovist.GetIsovistIntersections( uav_loc, fv )
+                tmp.append( intersections )
+            self.intersection_cache.append( tmp )
+
+        cPickle.dump( self.intersection_cache, open("./int_cache.cp","w") )
+
+        print "done!"
 
     def condition( self, Q, obs_t ):
         Q.condition( name="seen_obs_t", value=obs_t[0] )
@@ -88,10 +115,12 @@ class BasicIntruder( object ):
 
         # XXX I think this is backwards - should be from the intruder's perspective!
         # argh... need previous intruder location!
-        fv = direction( uav_path[ uav_loc_on_route ],
-                        uav_path[ np.mod(uav_loc_on_route-1,len(uav_path)) ] )
+#        fv = direction( uav_path[ uav_loc_on_route ],
+#                        uav_path[ np.mod(uav_loc_on_route-1,len(uav_path)) ] )
 
-        intersections = self.isovist.GetIsovistIntersections( uav_loc, fv )
+#        intersections = self.isovist.GetIsovistIntersections( uav_loc, fv )
+        intersections = self.intersection_cache[ uav_type ][ uav_loc_on_route ]
+
         intruder_seen = self.isovist.FindIntruderAtPoint( int_loc, intersections )
         pval = 0.999*intruder_seen + 0.001*(1-intruder_seen)
         seen = Q.flip( p=pval, name="seen_obs_t" )
