@@ -106,7 +106,7 @@ This file contains two different inference algorithms, BBVI (Black box variation
       - part_state: the state the particle is in
 
       Description:
-      - For every particle, we initialize the model with the global conditions and append the global variables to the list 'part_gs'
+      - For every particle, we initialize the model with the global conditions/or samples from the prior and append the global variables to the list 'part_gs'
       - We do the same for each particle, but instead with the state conditions and append the sampled initial state structure into 'part_state'
       - We initialize the score of each particle with 0, i.e. log(1)
 
