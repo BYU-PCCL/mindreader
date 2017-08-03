@@ -83,13 +83,12 @@ class PF( object ):
 
             self.cur_trace_score = 0.0
 
-            # generate (or condition on) observation
+            # generate (or condition on) observation & internally update the likelihood (i.e. cur_trace_score)
             obs = self.model.obs( self, gs, tsp,
                                   glob_conds=glob_conds, state_conds=state_conds )
 
             self.part_state[i] = tsp
 
-            # currently the trace score is not being calculated on the conditioned variables (unless it is hidden)
             self.part_score[i] = self.part_score[i] + self.cur_trace_score
 
         return tsp, obs
@@ -97,6 +96,13 @@ class PF( object ):
 
     def resample( self ):
         pass
+        '''
+        TODO:
+            0. create weights (uniform distribution)
+            1. multiply the weights with the likelihoods (for ea. particle)
+            2. need to normalize the weights (for ea. particle)
+            3. resample particles using categorical distribution (choice erp)
+        '''
 
     def condition( self, name=None, value=None ):
         self.cond_data_db[ name ] = value
