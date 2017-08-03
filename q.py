@@ -88,6 +88,8 @@ class PF( object ):
                                   glob_conds=glob_conds, state_conds=state_conds )
 
             self.part_state[i] = tsp
+
+            # currently the trace score is not being calculated on the conditioned variables (unless it is hidden)
             self.part_score[i] = self.part_score[i] + self.cur_trace_score
 
         return tsp, obs
