@@ -347,13 +347,13 @@ This file contains two different inference algorithms, BBVI (Black box variation
   run_rrt(start_pt, goal_point, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y, heat)
 
       Parameters:
-      start_pt: start point (x, y)
-      goal_pt: goal point 
-      endpoint_a_x: x coordinate of end point of first end point (point a)
-      endpoint_a_y: y coordinate of end point of first end point (point a)
-      endpoint_b_x: x coordinate of end point of second end point (point b)
-      endpoint_b_y: y coordinate of end point of second end point (point b)
-      heat: the heatcube (500, 500, time_steps)
+      - start_pt: start point (x, y)
+      - goal_pt: goal point 
+      - endpoint_a_x: x coordinate of end point of first end point (point a)
+      - endpoint_a_y: y coordinate of end point of first end point (point a)
+      - endpoint_b_x: x coordinate of end point of second end point (point b)
+      - endpoint_b_y: y coordinate of end point of second end point (point b)
+      - heat: the heatcube (500, 500, time_steps)
 
       Description:
       - loops untl we hit the step_limit=20000
