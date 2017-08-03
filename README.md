@@ -2,29 +2,6 @@
 
 # API 
 
-
-## MODELS - General information
-
- Objects/Models must support the following methods:
-
-  - X.global_init
-    - input: none
-    - output: global_vars
-  - X.state_init
-    - input: state_conds
-    - output: sampled initial state structure
-  - X.trans
-    - input: previous state
-    - output: sampled next state
-  - X.obs
-    - input: state
-    - output: sampled observation (obs_t)
-  - X.cond
-    - input: obs_t
-    - output: none
-    - describes how to condition an observation
-
-
 ## path_kde.py
 
 #### Functions:
@@ -36,13 +13,13 @@
       - standard deviation squared, or the variance/ spread of the data
 
       Description:
-      - Returns (500 x 500)  matrix with multivariate Gaussians centered at x, y with a spread of ss
+      - returns (500 x 500)  matrix with multivariate Gaussians centered at x, y with a spread of ss
    
 
   make_heatmap(pts, ss=100)
 
       Parameters:
-      - Pts is a list of tuples, x and y values [0,1]
+      - pts is a list of tuples, x and y values [0,1]
       - ss is the variance
 
       Description:
@@ -69,13 +46,13 @@
 
       Description: 
       - stands for elementary random primitives. 
-      - The purpose of the file is to write up several erps that we can use in our generative probabilistic programs
-      - Examples of erps are distributions we commonly use are:
+      - the purpose of the file is to write up several erps that we can use in our generative probabilistic programs
+      - examples of erps are distributions we commonly use are:
         -	Bernoulli / Flip
         - Normal/Gaussian
         - Uniform
-      - Distributions can vary from discrete to continuous
-      -	Each erp needs to have 
+      - distributions can vary from discrete to continuous
+      -	each erp needs to have 
         1. a way to sample from 
         2. a way to score a value ‘X’ – the score should be the log likelihood
 
@@ -97,8 +74,8 @@ This file contains two different inference algorithms, BBVI (Black box variation
   init_particles(glob_conds, state_conds)
   
       Parameters:
-      - glob_conds: the global variables we want to condition and their values
-      - state_conds: the state variables we want to condition and their values
+      - glob_conds: the global variables we want to condition and their values (in the intruder model, its the uav_type and path)
+      - state_conds: the state variables we want to condition and their values (in the intruder model, its the time step the intruder is in its respective path)
 
       Internal variables:
       - part_gs : list of particles
@@ -107,8 +84,8 @@ This file contains two different inference algorithms, BBVI (Black box variation
 
       Description:
       - For every particle, we initialize the model with the global conditions/or samples from the prior and append the global variables to the list 'part_gs'
-      - We do the same for each particle, but instead with the state conditions and append the sampled initial state structure into 'part_state'
-      - We initialize the score of each particle with 0, i.e. log(1)
+      - we do the same for each particle, but instead with the state conditions and append the sampled initial state structure into 'part_state'
+      - we initialize the score of each particle with 0, i.e. log(1)
 
   step(obs_t, glob_conds, state_conds)
 
@@ -119,7 +96,7 @@ This file contains two different inference algorithms, BBVI (Black box variation
 
       Description:
       - the first thing we do is check if we have observations at time 't', if we do, we condition the model with those observations
-      - Next, for every particle, we
+      - next, for every particle, we
         1. get the global variables and state structure
         2. we call 'trans' to transition the model given the glob_conds and state_conds. This gives us a new state for the particle
         3. we call 'obs' to get either sampled observations from the prior, or the observations conditioned
@@ -135,7 +112,7 @@ This file contains two different inference algorithms, BBVI (Black box variation
       - value : the value assigned to that random variable
 
       Description:
-      - Assigns the given value to the random variable
+      - assigns the given value to the random variable
 
   set_model(model):
 
@@ -145,7 +122,7 @@ This file contains two different inference algorithms, BBVI (Black box variation
   make_erp(erp_class, args)
 
       Description:
-      - This returns the class/model that represents the elementary random primitive where you can sample from and score a value using the pdf (probability density function)
+      - this returns the class/model that represents the elementary random primitive where you can sample from and score a value using the pdf (probability density function)
 
   do_erp(erp_class, args)
 
@@ -163,9 +140,9 @@ This file contains two different inference algorithms, BBVI (Black box variation
       - argname: the name we desire to take the gradient in respect to
 
       Description:
-      - Returns a function which computes the gradient of `fun` with respect to named argument`argname`. 
-      - The returned function takes the same arguments as `fun`, but returns the gradient instead. 
-      - The function `fun` should be scalar-valued. The gradient has the same type as the argument.
+      - returns a function which computes the gradient of `fun` with respect to named argument`argname`. 
+      - the returned function takes the same arguments as `fun`, but returns the gradient instead. 
+      - the function `fun` should be scalar-valued. The gradient has the same type as the argument.
 
   dforward_pass(fun, args, kwargs, argname)
 
@@ -395,7 +372,35 @@ This file contains two different inference algorithms, BBVI (Black box variation
       Description:
       - creates a temporary heat cube for testing purposes (500,500, time_steps). In this case time_steps = 200.
 
+## int_test.py
 
+   File Description:
+     - this is a simple test of our particle filter and model
+     - we want to infer the naive_uav's deterministic path and its current location on the path as it navigates based on observations. We are assuming observations are only sound at this point 
+
+    Description:
+    - loads 
+      - isovist
+      - polygon segments X1,Y1,X2,Y2
+      - all uav path types
+    - initalize the model as BasicIntruder
+    - set particle count as 1000
+    - instantiate the particle filter 'pf'
+    - initialize all particles
+      - every particle is assigned a uav_type with its respect path
+      - every particle samples a state (time step within path)
+    - We randomly choose a uav_type, uav_path, and uav_loc_on_route to represent what's actually happening. (we want the pf to infer the path and the location on the path)
+    - Filtering
+      - for 1000 iterations
+      - condition the intruder location (0.1, 0.1)
+      - we get the uav_loc and determine noise_level
+      - set seen to false
+      - make heard (i.e. noise_level) and seen as observations 'obs'
+      - let pf step with obs and condiitoned on int_loc (intruder location)
+        - all particles take a step forward according to their assigned uav_type/path and time step location
+      - simulate the uav stepping (update uav_loc_on_route)
+      - TODO: resample particles
+      
 ## sim_i.py 
 Simulation file for naive agents. Can be run as "headless=False" to view the behavior of the agents.
 
@@ -411,8 +416,26 @@ Contains commonly used the methods
 ## isovist.py
 Calculates isovist for map
 
-
-
 ## paths
 Contains line segments of map
 
+## MODELS - General information
+
+ Objects/Models must support the following methods:
+
+  - X.global_init
+    - input: none
+    - output: global_vars
+  - X.state_init
+    - input: state_conds
+    - output: sampled initial state structure
+  - X.trans
+    - input: previous state
+    - output: sampled next state
+  - X.obs
+    - input: state
+    - output: sampled observation (obs_t)
+  - X.cond
+    - input: obs_t
+    - output: none
+    - describes how to condition an observation
