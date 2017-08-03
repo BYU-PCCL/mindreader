@@ -2,7 +2,7 @@
 from intruder import BasicIntruder
 import q
 import isovist
-from methods_slim import *
+from methods import *
 from rrt_smooth import *
 
 
@@ -21,7 +21,7 @@ for test_name in types:
     uav_path_types.append( path )
 
 # set number of particles
-PART_CNT = 1000
+PART_CNT = 5
 
 # set the model
 model = BasicIntruder( isovist )
@@ -49,7 +49,7 @@ print "Filtering..."
 # the intruder location
 int_loc = [0.1,0.1]
 
-observation_cnt = 10
+observation_cnt = 1
 
 for t in range( observation_cnt ):
 
@@ -65,10 +65,8 @@ for t in range( observation_cnt ):
     # tuple observations
     obs = ( seen, heard )
 
-    # particles step
+    # particles step 
     pf.step( obs_t=obs, state_conds=int_loc )
-
-    # get observations from particles/ or use them
 
     # simulate the uav steping forward
     uav_loc_on_route = np.mod( uav_loc_on_route + 1, len(uav_path) )
