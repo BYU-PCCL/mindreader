@@ -177,14 +177,14 @@ This file contains two different inference algorithms, BBVI (Black box variation
 
 ## heatcube.py
 
-    Internal Variables
+      Internal Variables
       - cand_locs: a discrete set of locations
       - polygonSegments: loads polygons from maps
       - isovist: isovist object
       - X1, Y1, X2, Y2: line segments for polygons from map
       - types: the names of the naive agent paths
 
-    Description:
+      Description:
       - for every naive agent path, the data gets loaded and transformed into a heatmap
       - each heatmap is stored into an array 'results'
       - each heatmap is (flattened) by taking the expectation over time steps
