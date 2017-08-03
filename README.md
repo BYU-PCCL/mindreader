@@ -85,12 +85,12 @@ This file contains two different inference algorithms, BBVI (Black box variation
 
 ### Particle Filter
 
-      Internal variables:
-      -	cnt : the number of particles
-      -	model: the model each particle represents
-      -	cond_data_db: dictionary of the random variables in the generative program that are conditioned and their respective conditioned value. Example Key:Value -> “start_position”: [0,0], where the generative program now conditions the variable named “start_position” to the x,y position of 0,0. 
-      -	Cur_trace_score: the current log likelihood of the trace
-      -	Choice, randn, flip, rand, beta: all erps registered to the inference algorithm
+   Internal variables:
+   -	cnt : the number of particles
+   -	model: the model each particle represents
+   -	cond_data_db: dictionary of the random variables in the generative program that are conditioned and their respective conditioned value. Example Key:Value -> “start_position”: [0,0], where the generative program now conditions the variable named “start_position” to the x,y position of 0,0. 
+   -	cur_trace_score: the current log likelihood of the trace
+   -	choice, randn, flip, rand, beta: all erps registered to the inference algorithm
 
 #### Functions:
 
@@ -190,6 +190,85 @@ This file contains two different inference algorithms, BBVI (Black box variation
       - each heatmap is (flattened) by taking the expectation over time steps
       - next we take the expectation over all the heatmaps
       - data is saved as './heatcube.npy'
+
+## intruder.py
+
+   BasicIntruder Description:
+   - the intruder model knows where it begins and ends (start and goal locations)
+   - it has a belief over UAV locations and the type it is (assuming the UAV is a naive agent with a deterministic path of navigation)
+   - the intruder must plan a path that minimizes detection probability
+   - the intruder is unaware at what timestep the UAV is at
+
+   Internal Variables:
+   - isovist : isovist object
+   - intersection_cache: cache of precomputer intersections from the isovist
+
+
+#### Functions
+
+  precompute_and_save_intersections()
+
+      Description:
+      - for every type of deterministic naive agent plan, compute the isovists as it walks from start to goal location (of the respective path)
+      - cashe each of the intersections into './int_cache.cp'
+
+
+  condition(Q, obs_t)
+
+      Parameters:
+      - Q: the inference algorithm
+      - obs_t: tuple with seen observation in index 0 and heard observation in index 1
+
+      Description:
+      - conditions the inference algorithm's seen and heard observations in obs_t
+
+  global_init(Q)
+
+      Parameters:
+      - Q: the inference algorithm
+
+      Description:
+      - selects the uav_type from a uniform distribution
+      - returns the uav_type and its respective path
+
+  state_init(Q, gs)
+
+      Parameters:
+      - Q: the inference algorithm
+      - gs: (stands for gloab state object) tuple of the uav_type and uav_path
+
+      Description:
+      - samples a time step from a uniform distribution to represent the initial location of the uav
+      - returns the sampled time step
+
+  trans(Q, gs, ts)
+
+      Parameters:
+      - Q: inference algorithm
+      - gs: global state object, a tuple of the uav_tupe and uav_path
+      -
+
+      Description:
+      - gets the uav_location based on the time step given and the uav_path
+      - returns the next uav_loc (step + 1)
+
+  obs(Q, gs, ts, state_conds)
+
+      Parameters:
+      - Q: inference algorithm 
+      - gs: global state object, a tuple of the uav_type and uav_path
+      - ts: current time step state, a time step
+      - state_conds: conditioned values, the intruder location
+
+      Description:
+      - gets the uav_location based on the time step given and the uav_path
+      - gets the cached intersections for the isovists for the uav_path
+      - based on the intruder location, check if agent detected the intruder
+      - sample 'intruder_seen' from a weighted flip erp
+        - currently this is set up as always False
+      - based on the the proximity of the agent to the intruder, get noise level agent makes
+      - samples a 'heard' sample from a normal distribution (randn erp)
+      - returns the seen and heard samples 
 
 
 
