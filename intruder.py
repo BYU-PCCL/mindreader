@@ -1,7 +1,7 @@
 
 import numpy as np
 import isovist
-from methods_slim import load_data, direction, noise_level
+from methods import load_data, direction, noise_level
 from rrt_smooth import *
 import cPickle
 
@@ -33,7 +33,9 @@ types = [ 'alley', 'grid', 'random', 'swirl_in', 'swirl_out' ]
 uav_path_types = []
 for test_name in types:
     path = load_data( "NaiveAgentPaths/" + test_name + "_paths" )
-    path = smooth( path )
+    # I believe I fixed the rrt bug, so no smoothing is nessessary now... 
+    # TODO: check rrt paths
+    #path = smooth( path )
     uav_path_types.append( path )
 
 # ====================================================
