@@ -270,6 +270,130 @@ This file contains two different inference algorithms, BBVI (Black box variation
       - samples a 'heard' sample from a normal distribution (randn erp)
       - returns the seen and heard samples 
 
+## my_rrt.py
+
+  line_intersect(X1, Y1, X2, Y2, X3, Y3, X4, Y4)
+
+      Parameters:
+      - (all the following are numpy arrays (n x 1) (1 x n) )
+      - X1, Y1: point(s) for one end of the 1st line segment (may be for multiple line segments)
+      - X2, Y2: point(s) for other end of the 1st line segment (may be for multiple line segments)
+      - X3, Y3: point(s) for one end of the 2nd line segment (may be for multiple line segments)
+      - X4, Y4: point(s) for other end of the 2nd line segment (may be for multiple line segments)
+
+      Description:
+      - adapted from http://www.mathworks.com/matlabcentral/fileexchange/27205-fast-line-segment-intersection
+      - generates intersection analysis between the line segment sets given in XY1 and XY2. Code can handle coincident and parallel lines.
+      - The main emphasis is on speed. The code is fully vectorized and it runs pretty fast (orders of magnitude) compared to some of the previous postings.
+
+  load_polygons(fn)
+
+      Parameters:
+      - fn: filename
+
+      Description:
+      - loads a set of polygons
+      - appends the first point to also be the last point
+      - by appending the first point as the last point, it ensures that the resulting polygon is exactly closed.
+      - this prepends a single point that is the mean of all the other points.
+      - this is for drawing the polygons using a GL_TRIANGLE_FAN.
+
+
+  polygons_to_segments(polygon_list)
+
+      Parameters:
+      - polygon_list: list of numpy arrays
+
+      Description:
+      - each nparray is a kx2 matrix, representing x,y points
+      - first entry is the mean of all the points, which is SKIPPED
+      - last entry in the matrix is the same as the first
+      - returns x1,y1, x2,y2
+
+  distance_to_other_points(pt, pts)
+
+      Parameters:
+      - pt: point
+      - pts: all other points
+
+      Description:
+      - computes euclidean distance between pt and pts
+
+  run_rrt_poly(start_pt, goal_pt, polygons)
+
+      Parameters:
+      - start_pt: start point (x,y coordinates)
+      - goal_pt: goal point
+      - polygons: the map in line segment form
+
+      Description:
+      - calls polygons_to_segments(...) on 'polygons'
+      - calls run_rrt(...)
+
+  biased_flip(prob)
+
+      Parameters:
+      - prob: the probability, value between 0 and 1
+
+      Description:
+      - randomly samples a number between 1 and 100
+      - if the sample is less than the sqrt(prob * 100) returns 1
+
+  mag(one, two)
+
+      Parameters:
+      - one: tuple of x y values
+      - two: tuple of x y values
+
+      Description:
+      - finds the euclidean distance (magnitude) between the two points
+
+  parent_count(nearest_ind, parents)
+
+      Parameters:
+      - nearest_ind: index
+      - parents: list of parent indexes
+
+      Description:
+      - gets the nearest index from list of parent indexes, until it reaches the 0th index (root)
+      - returns count
+
+  parent_count_mem(nearest_ind, parents)
+
+      Parameters:
+      - nearest_ind: index
+      - parents: list of parent indexes
+
+      Description:
+      - added memory lookup for parent count for time variable in heat cube
+
+  run_rrt(start_pt, goal_point, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y, heat)
+
+      Parameters:
+      start_pt: start point (x, y)
+      goal_pt: goal point 
+      endpoint_a_x: x coordinate of end point of first end point (point a)
+      endpoint_a_y: y coordinate of end point of first end point (point a)
+      endpoint_b_x: x coordinate of end point of second end point (point b)
+      endpoint_b_y: y coordinate of end point of second end point (point b)
+      heat: the heatcube (500, 500, time_steps)
+
+      Description:
+      - loops untl we hit the step_limit=20000
+      - select a random point, random_point
+      - flip to move toward the goal point
+      - find the nearest point from random_point
+      - if we move toward to the goal point, we do that instead of taking a step towards to the random point
+      - however if the next step lands in an obstacle, we start again by selecting a new random point
+      - if 'heat' is not None, and the next step is in a danger zone, we do a biased flip to decide if take the step or not
+      - once we reach the goal (or very near it) we perculate back to the root to get the path. 
+      - return the path
+      - if the goal is not reached within the step limit, we return an empty list
+
+  create_temp_heat_map()
+
+      Description:
+      - creates a temporary heat cube for testing purposes (500,500, time_steps). In this case time_steps = 200.
 
 
 ## sim_i.py 
@@ -287,8 +411,7 @@ Contains commonly used the methods
 ## isovist.py
 Calculates isovist for map
 
-## my_rrt.py
-Creates a path between points
+
 
 ## paths
 Contains line segments of map
