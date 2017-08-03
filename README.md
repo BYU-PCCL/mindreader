@@ -151,6 +151,46 @@ This file contains two different inference algorithms, BBVI (Black box variation
 
       Description:
       - this function runs the erp function class given 'erp_class'. It will run the erp on conditioned data, or sample from the prior. Then it scores it and returns the sample. 
+      
+## dautograd.py
+
+#### Functions:
+
+  dgrad_named(fun, argname)
+
+      Parameters:
+      - fun: a function
+      - argname: the name we desire to take the gradient in respect to
+
+      Description:
+      - Returns a function which computes the gradient of `fun` with respect to named argument`argname`. 
+      - The returned function takes the same arguments as `fun`, but returns the gradient instead. 
+      - The function `fun` should be scalar-valued. The gradient has the same type as the argument.
+
+  dforward_pass(fun, args, kwargs, argname)
+
+      Parameters:
+      - fun: a function
+      - argname: the name we desire to take the gradient in respect to
+
+      Description:
+
+## heatcube.py
+
+    Internal Variables
+      - cand_locs: a discrete set of locations
+      - polygonSegments: loads polygons from maps
+      - isovist: isovist object
+      - X1, Y1, X2, Y2: line segments for polygons from map
+      - types: the names of the naive agent paths
+
+    Description:
+      - for every naive agent path, the data gets loaded and transformed into a heatmap
+      - each heatmap is stored into an array 'results'
+      - each heatmap is (flattened) by taking the expectation over time steps
+      - next we take the expectation over all the heatmaps
+      - data is saved as './heatcube.npy'
+
 
 
 ## sim_i.py 
