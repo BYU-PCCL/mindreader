@@ -67,6 +67,14 @@ for t in range( observation_cnt ):
 
     # particles step 
     pf.step( obs_t=obs, state_conds=int_loc )
+    '''
+    pf.step conditions all the particles on observation at timestep t
+    internally, using a normal distribution on the noise level in 
+    the generative program for the intruder
+    '''
+
+    # resample particles
+    pf.resample()
 
     # simulate the uav steping forward
     uav_loc_on_route = np.mod( uav_loc_on_route + 1, len(uav_path) )
