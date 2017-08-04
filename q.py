@@ -93,16 +93,30 @@ class PF( object ):
 
         return tsp, obs
 
-
     def resample( self ):
-        pass
-        '''
-        TODO:
-            0. create weights (uniform distribution)
-            1. multiply the weights with the likelihoods (for ea. particle)
-            2. need to normalize the weights (for ea. particle)
-            3. resample particles using categorical distribution (choice erp)
-        '''
+        # reset weights (self.cnt x 1)
+        weights = np.full((self.cnt, 1), (1.0/self.cnt))
+
+        # update weights using likelihoods
+        likelihoods = np.asarray([self.part_score]).T
+        weights *= likelihoods
+
+        # normalize weights
+        norm = np.sum(weights)
+        weights /= float(norm)
+
+        # resample
+        indices = np.random.choice([i for i in range(self.cnt)], p=weights[:,0], size=self.cnt)
+
+        resampled_part_gs = []
+        resampled_state_temp = []
+
+        for i in xrange( self.cnt ):
+            resampled_part_gs.append(self.part_gs[i])
+            resampled_state_temp.append(self.part_state[i])
+
+        self.part_gs = resampled_part_gs
+        self.part_state = resampled_state_temp
 
     def condition( self, name=None, value=None ):
         self.cond_data_db[ name ] = value
