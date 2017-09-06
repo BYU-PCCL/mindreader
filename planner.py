@@ -53,6 +53,34 @@ def optimize_path(x1, y1, x2, y2, orig_path, iters, std):
 
 	return points
 
+def simplify_path(x1, y1, x2, y2, orig_path):
+	points = [orig_path[0]]
+	for i in xrange(1, len(orig_path)-2):
+		last_pt = points[-1]
+		next_pt = orig_path[i]
+		bnt_x, int_y, intersection_indicators = line_intersect( 
+	            last_pt[0], 
+	            last_pt[1], 
+	            next_pt[0], 
+	            next_pt[1], 
+	            x1, y1, x2, y2)
+		if intersection_indicators.any():
+			points.append(orig_path[i])
+
+	points.append(orig_path[-1])
+	return points
+
+
+
+def exp_dist(x1, y1, x2, y2, start_pt, goal_pt):
+    distances = []
+    for i in xrange(100):
+		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2)
+		for j in xrange(len(path)-1):
+			distances.append(dist(path[j], path[j+1]))
+    return distances
+	#print(np.mean(distances))
+
 
 
 if __name__ == '__main__':
@@ -78,15 +106,29 @@ if __name__ == '__main__':
 
     scale = 1000
 
+    # plot original RRT path
     for i in range( 0, len(path)-1 ):
         ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'b' )
      
-    iters = 10000 #10000
+    iters = 10000
     std = 1.0/500          
     new_path = optimize_path(x1, y1, x2, y2, path, iters, std)
 
+    # plot optimized path
     for i in range( 0, len(new_path)-1 ):
         ax.plot( [ new_path[i][0] * scale, new_path[i+1][0] * scale ], [ new_path[i][1] * scale, new_path[i+1][1] * scale], 'red' )
+     
+    sim_path = simplify_path(x1, y1, x2, y2, path)
+
+    # plot simplification from original RRT path
+    for i in range( 0, len(sim_path)-1 ):
+        ax.plot( [ sim_path[i][0] * scale, sim_path[i+1][0] * scale ], [ sim_path[i][1] * scale, sim_path[i+1][1] * scale], 'limegreen' )
+
+    sim_path = simplify_path(x1, y1, x2, y2, new_path)
+
+    # plot simplification of optimized path
+    for i in range( 0, len(sim_path)-1 ):
+        ax.plot( [ sim_path[i][0] * scale, sim_path[i+1][0] * scale ], [ sim_path[i][1] * scale, sim_path[i+1][1] * scale], 'gold' )
      
 
     ax.scatter( start_pt[0,0] * scale, start_pt[0,1]  * scale)
@@ -95,9 +137,15 @@ if __name__ == '__main__':
 
     for i in xrange(x1.shape[0]):
     	ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black' )
-         
-    #print(x1[1,0])
+
+    # distances = exp_dist(x1, y1, x2, y2, start_pt, goal_pt)
+    # print(np.mean(distances) * 500)
+    # print(np.max(distances) * 500)
+    # print(np.min(distances) * 500)
+    # #print(x1[1,0]) *
     #print(x1.shape) #(323, 1)
+
+
 
 
     plt.show() #boom
