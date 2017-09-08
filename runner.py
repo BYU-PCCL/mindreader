@@ -4,7 +4,7 @@
 import numpy as np
 import isovist
 from my_rrt import *
-#from methods import *
+from methods import load_data, direction, load_isovist_map, scale_up
 import planner
 
 
@@ -39,25 +39,30 @@ class Runner(object):
 		#enf_goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_goal" )
 		enf_start_i = int(np.random.uniform(0, 10))
 		enf_goal_i = int(np.random.uniform(0, 10))
+		while enf_goal_i == enf_start_i:
+			enf_goal_i = int(np.random.uniform(0, 10))
 		
-		print("enf_start_i",enf_start_i)
-		print("enf_goal_i",enf_goal_i)
-
 		enf_start = np.atleast_2d( self.locs[enf_start_i] )
 		enf_goal = np.atleast_2d( self.locs[enf_goal_i] )
-
-		print("enf_start",enf_start)
-		print("enf_goal", enf_goal)
-
+		path_noise = .00001
 		enf_plan = self.plan_path(enf_start, enf_goal)
+		enf_noisy_plan = [enf_plan[0]]
+		for i in xrange(1, len(enf_plan)-1):
+			# add noise to each location at 't_i'
+			loc_t = np.random.multivariate_normal(enf_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+			enf_noisy_plan.append(loc_t)
+		enf_noisy_plan.append(enf_plan[-1])
 
-		print(len(enf_plan))
+
+
+
 
 		#t = Q.choice( p=1.0/30*np.ones((1,30)), name="t" )
-		t = int(np.random.uniform(0, 30))
+		#t = int(np.random.uniform(0, 30))
+		#for display only - to show in the middle-ish
+		t = int(np.random.uniform(3, 10))
 
 		enf_loc = np.atleast_2d(enf_plan[t])
-		print("enf_loc", enf_loc)	
 
 		#----------------- end of enforcer model ------------------	
 
@@ -69,25 +74,33 @@ class Runner(object):
 
 		start_i = int(np.random.uniform(0, 10))
 		goal_i = int(np.random.uniform(0, 10))
+		while goal_i == start_i:
+			goal_i = int(np.random.uniform(0, 10))
 
 		start = np.atleast_2d( self.locs[start_i] )
 		goal = np.atleast_2d( self.locs[goal_i] )
 
 		my_plan = self.plan_path(start, goal)
 		my_loc = np.atleast_2d(my_plan[t])
+		my_noisy_plan = [my_plan[0]]
+		for i in xrange(1, len(my_plan)-1):
+			# add noise to each location at 't_i'
+			loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+			my_noisy_plan.append(loc_t)
+		my_noisy_plan.append(my_plan[-1])
 
-		# TODO: add detection random variable
-		seen = 0 #call isovists
-		detected = 0 # ~ flip(seen*.999 + (1-seen*.001)
+		# set up the view (vision) of the enforcer
+		pre_enf_loc = scale_up(enf_plan[np.mod(t-1, len(enf_plan))])
+		cur_enf_loc = scale_up(enf_plan[t])
+		fv = direction(cur_enf_loc, pre_enf_loc)
+		intersections = self.isovist.GetIsovistIntersections(cur_enf_loc, fv)
 
-
-		# uav_loc = uav_path[ uav_loc_on_route ]
-  #       fv = direction( uav_loc,
-  #                       uav_path[ np.mod(uav_loc_on_route-1,len(uav_path)) ] )
-  #       intersections = self.isovist.GetIsovistIntersections( uav_loc, fv )
-
-
-
+		# does the enforcer see me at time 't'
+		my_cur_loc = scale_up(my_plan[t])
+		was_i_seen = self.isovist.FindIntruderAtPoint( my_cur_loc, intersections )
+		detected_prob = 0.999*was_i_seen + 0.001*(1-was_i_seen) # ~ flip(seen*.999 + (1-seen*.001)
+		#detected = Q.flip( p=detected_prob, name="was_intruder_detected" )
+		print "INTRUDER DETECTED=", detected_prob
 
 		#*************** PLOTTING [TESTING] CODE **************
 		if self.show:
@@ -103,21 +116,21 @@ class Runner(object):
 			path = enf_plan
 			for i in range( 0, len(path)-1 ):
 				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey' )
-				ax.scatter( path[i][0] * scale, path[i][1]  * scale, color="grey", s = 3)
+				ax.scatter( enf_noisy_plan[i][0] * scale, enf_noisy_plan[i][1]  * scale, color="black", s = 3)
 
 			ax.scatter( enf_start[0,0] * scale, enf_start[0,1]  * scale, color="green")
 			ax.scatter( enf_goal[0,0] * scale, enf_goal[0,1] * scale, color = "red")
-			ax.scatter( enf_loc[0,0] * scale, enf_loc[0,1] * scale, color = "blue", s = 25)
+			ax.scatter( enf_loc[0,0] * scale, enf_loc[0,1] * scale, color = "blue", s = 55, marker="v")
 
 			# plot intruder_plan
 			path = my_plan
 			for i in range( 0, len(path)-1 ):
 				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey' )
-				ax.scatter( path[i][0] * scale, path[i][1]  * scale, color="grey", s = 3)
+				ax.scatter( my_noisy_plan[i][0] * scale, my_noisy_plan[i][1]  * scale, color="black", s = 3)
 
 			ax.scatter( start[0,0] * scale, start[0,1]  * scale, color="green")
 			ax.scatter( goal[0,0] * scale, goal[0,1] * scale, color = "red")
-			ax.scatter( my_loc[0,0] * scale, my_loc[0,1] * scale, color = "magenta", s = 25)
+			ax.scatter( my_loc[0,0] * scale, my_loc[0,1] * scale, color = "magenta", s = 45, marker = "D")
 
 
 
@@ -133,11 +146,24 @@ class Runner(object):
 			plt.ylim((0,scale))
 			plt.show()
 
-		#********************************************************
+
 
 
 
 
 if __name__ == '__main__':
-		R = Runner()
+		# load isovist
+		isovist = isovist.Isovist( load_isovist_map() )
+		print(isovist)
+
+		R = Runner(isovist)
 		R.run(None)
+
+
+
+
+
+
+
+
+
