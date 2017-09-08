@@ -35,7 +35,7 @@ def Update():
 		    return pygame.mouse.get_pos()
 
 
-def load_polygons_here( fn="./paths.txt" ):
+def load_polygons( fn="./paths.txt" ):
     bdata = []
     for x in open( fn ):
         tmp = np.fromstring( x, dtype=float, sep=' ' )
@@ -45,7 +45,7 @@ def load_polygons_here( fn="./paths.txt" ):
         bdata.append( tmp )
     return bdata
 
-def load_polygons( fn="./paths.txt" ):
+def load_isovist_map( fn="./paths.txt" ):
 	polygonSegments = []
 	for line in open( fn ):
 		line = line.strip('\n')
