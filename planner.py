@@ -41,6 +41,8 @@ def optimize_path(x1, y1, x2, y2, orig_path, iters, std):
 		
 		back_ok = not back_intersection_indicators.any()
 		front_ok = not forward_intersection_indicators.any()
+		
+		new_dist = 0.0
 
 		if back_ok:
 			if front_ok:
