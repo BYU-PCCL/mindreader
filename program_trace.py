@@ -5,7 +5,7 @@ from dautograd import dgrad_named
 from erps import *
 
 
-class Inference(object):
+class Program_Trace(object):
 	def __init__(self, model=none):
 		self.model = model
 
@@ -91,7 +91,9 @@ class Inference(object):
 
 
 
-
+if __name__ == '__main__':
+		p = Program_Trace()
+		
 
 
 
