@@ -3,7 +3,8 @@ import program_trace as p
 import runner as r
 from methods import load_isovist_map
 from my_rrt import *
-import copy as c
+import copy
+from scipy.misc import logsumexp
 
 # XXX in order for the entruder to do theory of mind
 	# to intercept the runner agent, the entruder must do 
@@ -43,28 +44,33 @@ def example_conditions(trace):
 	return trace
 
 
-def sampling_importance(trace, samples=1):
+def sampling_importance(trace, samples=10):
 	traces = []
 	scores = np.arange(samples)
 
 	for i in xrange(samples):
 		#deep copy is not working
-		t = c.deepcopy(trace)
-		score, trace_vals = t.run_model()
-		traces.append(trace_vals)
+		score, trace_vals = trace.run_model()
+		traces.append(copy.deepcopy(trace_vals))
 		scores[i] = score
-	print traces
-	print scores
+
+	# get weight for score
+	weights = np.exp(scores - logsumexp(scores))
+
+	# normalize between 0 and 1
+	weights = weights / sum(weights)
+
+	# sample
+	chosen_index = np.random.choice([i for i in range(samples)], p=weights)
+	return traces[chosen_index]
 
 
-	#weights = np.exp()
-
- # 	  weights = exp.(scores - logsumexp(scores))
- #    weights = weights / sum(weights)
-
- #    # pick a trace in propotion to its relative weight and return it
- #    chosen = rand(Categorical(weights))
- #    return traces[chosen]
+def run_inference(trace, post_samples=10):
+	post_traces = []
+	for i in xrange(post_samples):
+		post_sample_trace = sampling_importance(trace, samples=10)
+		post_traces.append(post_traces)
+	return post_traces
 
 
 if __name__ == '__main__':
@@ -78,14 +84,10 @@ if __name__ == '__main__':
 	trace = p.ProgramTrace(model)
 	# set testing/example conditions in trace
 	trace = example_conditions(trace)
+	# run inference
+	post_sample_traces = run_inference(trace, post_samples=10)
 
-	#sampling_importance(trace, samples=1)
 
-
-	# generate 
-	# something = trace.run_model()
-
-	# print something
 
 
 
