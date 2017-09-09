@@ -9,21 +9,12 @@ import planner
 
 
 class Runner(object):
-	def __init__(self, isovist=None):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
 		self.isovist = isovist
 		#TODO: varify these locations
-		self.locs = [
-            [ 0.100, 1-0.900 ],
-            [ 0.566, 1-0.854 ],
-            [ 0.761, 1-0.665 ],
-            [ 0.523, 1-0.604 ],
-            [ 0.241, 1-0.660 ],
-            [ 0.425, 1-0.591 ],
-            [ 0.303, 1-0.429 ],
-            [ 0.815, 1-0.402 ],
-            [ 0.675, 1-0.075 ],
-            [ 0.432, 1-0.098 ] ]
-		rx1,ry1,rx2,ry2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
+		self.locs = locs
+		rx1,ry1,rx2,ry2 = seg_map
+		#rx1,ry1,rx2,ry2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
 		self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
 		self.time_limit = 200
 		self.show = True
@@ -152,11 +143,25 @@ class Runner(object):
 
 
 if __name__ == '__main__':
+		locs = [
+            [ 0.100, 1-0.900 ],
+            [ 0.566, 1-0.854 ],
+            [ 0.761, 1-0.665 ],
+            [ 0.523, 1-0.604 ],
+            [ 0.241, 1-0.660 ],
+            [ 0.425, 1-0.591 ],
+            [ 0.303, 1-0.429 ],
+            [ 0.815, 1-0.402 ],
+            [ 0.675, 1-0.075 ],
+            [ 0.432, 1-0.098 ] ]
+
+		seg_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
+
 		# load isovist
 		isovist = isovist.Isovist( load_isovist_map() )
 		print(isovist)
 
-		R = Runner(isovist)
+		R = Runner(isovist, locs, seg_map)
 		R.run(None)
 
 
