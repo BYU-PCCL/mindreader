@@ -150,8 +150,8 @@ class flip_erp:
         p = a2d( p )
         if sz == None:
             sz = p.shape
-        print "p=", p
-        print "sz=", sz
+        #print "p=", p
+        #print "sz=", sz
         return np.random.rand( *sz ) < p
 
     @staticmethod

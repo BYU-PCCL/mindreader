@@ -23,7 +23,6 @@ if __name__ == '__main__':
 
 	# load isovist
 	isovist = isovist.Isovist( load_isovist_map() )
-	print(isovist)
 
 	model = r.Runner(isovist, locs, seg_map)
 	#model.run(None)
@@ -31,6 +30,8 @@ if __name__ == '__main__':
 
 
 	trace = p.ProgramTrace(model)
+	something = trace.run_model()
+	print something
 
 
 
