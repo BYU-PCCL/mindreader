@@ -41,16 +41,14 @@ class ProgramTrace(object):
 			raise(Exception('All ERPs must have a name!'))
 
 		if self.cond_data_db.has_key( name ):
-			print "has name:", name
+			# only if it's constrained, add the log score 
+			# joint probability / proposal, cancel out prior sample scores
 			new_val = self.cond_data_db[ name ]
+			erp_score = erp_class.score( new_val, *args, **kwargs )
+			self.cur_trace_score += erp_score
 		else:
 		    # we always sample from the prior
-			print "sample from prior for name:", name
 			new_val = erp_class.sample( *args, **kwargs )
-
-		erp_score = erp_class.score( new_val, *args, **kwargs )
-		print "erp_score:", erp_score
-		self.cur_trace_score += erp_score
 
 		return new_val
 
