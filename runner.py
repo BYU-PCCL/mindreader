@@ -35,12 +35,13 @@ class Runner(object):
 		enf_goal = np.atleast_2d( self.locs[enf_goal_i] )
 		path_noise = .003
 		enf_plan = self.plan_path(enf_start, enf_goal)
-		enf_noisy_plan = [enf_plan[0]]
+		enf_noisy_plan = []
 		for i in xrange(1, len(enf_plan)-1): #loc_t = np.random.multivariate_normal(enf_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
 			loc_x = Q.randn( mu=enf_plan[i][0], sigma=path_noise, name="enf_x_"+str(i) )
 			loc_y = Q.randn( mu=enf_plan[i][1], sigma=path_noise, name="enf_y_"+str(i) )
 			loc_t = [loc_x, loc_y]
 			enf_noisy_plan.append(loc_t)
+			
 		enf_noisy_plan.append(enf_plan[-1])
 
 		
@@ -75,19 +76,34 @@ class Runner(object):
 			my_noisy_plan.append(loc_t)
 		my_noisy_plan.append(my_plan[-1])
 
-		# set up the enforcer view (forward vector, fv) for the next step
-		cur_enf_loc = scale_up(enf_plan[t])
-		next_enf_loc = scale_up(enf_plan[t+1])
-		fv = direction(next_enf_loc, cur_enf_loc)
-		intersections = self.isovist.GetIsovistIntersections(next_enf_loc, fv)
+		# XXX Need to make sure the runner wasn't seen in any of the previous time steps
+		i_already_seen = 0
+		for i in xrange(t):
+			intersections = Q.cache["enf_intersections_t_"+str(i)]# get enforcer's fv for time t
+			i_already_seen = self.isovist.FindIntruderAtPoint(my_noisy_plan[i], intersections)
+			if (i_already_seen):
+				detected_prob = 0.999*i_already_seen + 0.001*(1-i_already_seen) 
 
-		# does the enforcer see me at time 't'
-		my_next_loc = scale_up(my_plan[t+1])
-		will_i_be_seen = self.isovist.FindIntruderAtPoint( my_next_loc, intersections )
-		detected_prob = 0.999*will_i_be_seen + 0.001*(1-will_i_be_seen) # ~ flip(seen*.999 + (1-seen*.001)
+		if not i_already_seen:
+			# set up the enforcer view (forward vector, fv) for the next step
+			cur_enf_loc = scale_up(enf_noisy_plan[t])
+			next_enf_loc = scale_up(enf_noisy_plan[t+1])
+			fv = direction(next_enf_loc, cur_enf_loc)
+			intersections = self.isovist.GetIsovistIntersections(next_enf_loc, fv)
+
+			# does the enforcer see me at time 't'
+			my_next_loc = scale_up(my_noisy_plan[t+1])
+			will_i_be_seen = self.isovist.FindIntruderAtPoint( my_next_loc, intersections )
+			detected_prob = 0.999*will_i_be_seen + 0.001*(1-will_i_be_seen) # ~ flip(seen*.999 + (1-seen*.001)
+		
+
 		future_detection = Q.flip( p=detected_prob, name="int_detected" )
 
 		#print "INTRUDER DETECTED=", detected
+
+		# for rendering purposes
+		Q.keep("int_plan", my_noisy_plan)
+		Q.keep("enf_plan", enf_noisy_plan)
 
 		#*************** PLOTTING [TESTING] CODE **************
 		if self.show:
@@ -95,15 +111,15 @@ class Runner(object):
 			fig.clf()
 			ax = fig.add_subplot(1, 1, 1)
 			scale = 1
-		    # plot enf_plan
+			# plot enf_plan
 			path = enf_plan
 			for i in range( 0, len(path)-1 ):
 				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey' )
 				ax.scatter( enf_noisy_plan[i][0] * scale, enf_noisy_plan[i][1]  * scale, color="black", s = 3)
 
-			ax.scatter( enf_start[0,0] * scale, enf_start[0,1]  * scale, color="green")
-			ax.scatter( enf_goal[0,0] * scale, enf_goal[0,1] * scale, color = "red")
-			ax.scatter( enf_loc[0,0] * scale, enf_loc[0,1] * scale, color = "blue", s = 55, marker="v")
+			ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
+			ax.scatter( path[-1][0] * scale, path[-1][1] * scale, color = "red")
+			ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "blue", s = 55, marker="v")
 
 			# plot intruder_plan
 			path = my_plan
@@ -111,9 +127,9 @@ class Runner(object):
 				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey' )
 				ax.scatter( my_noisy_plan[i][0] * scale, my_noisy_plan[i][1]  * scale, color="black", s = 3)
 
-			ax.scatter( start[0,0] * scale, start[0,1]  * scale, color="green")
-			ax.scatter( goal[0,0] * scale, goal[0,1] * scale, color = "red")
-			ax.scatter( my_loc[0,0] * scale, my_loc[0,1] * scale, color = "magenta", s = 45, marker = "D")
+			ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
+			ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
+			ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D")
 
 			# plot all of the destinations
 			# for i in xrange(10):

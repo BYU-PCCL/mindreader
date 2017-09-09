@@ -27,7 +27,12 @@ def line_intersect( X1,Y1,X2,Y2, X3,Y3,X4,Y4 ):
 
     INT_X = X1 + X2_X1 * u_a
     INT_Y = Y1 + Y2_Y1 * u_a
-    did_intersect = (u_a >= 0) & (u_a <= 1) & (u_b >= 0) & (u_b <= 1)
+    try:
+        did_intersect = (u_a >= 0) & (u_a <= 1) & (u_b >= 0) & (u_b <= 1)
+    except:
+        # Don't know what's wrong with the code previously to this: 
+        # hacking it by saying that it did intersect if we divide by zero
+        return 1
 
     return INT_X, INT_Y, did_intersect
 

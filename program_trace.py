@@ -10,6 +10,7 @@ class ProgramTrace(object):
 		self.cond_data_db = {}
 		self.cur_trace_score = 0.0
 		self.trace = {}
+		self.cache = {}
 
 		# register the available elementary random primitives
 		self.choice = self.make_erp( choice_erp )
@@ -31,8 +32,17 @@ class ProgramTrace(object):
 		self.model.run(self)
 		return self.cur_trace_score, self.trace
 
+	def keep(self, name=None, value=None):
+		self.trace[name] = value
+
+	def fetch(self, name=None):
+		if name in self.trace:
+			return self.trace[name]
+		return None
+
 	def make_erp( self, erp_class ):
 		return lambda *args, **kwargs: self.do_erp( erp_class, *args, **kwargs )
+
 
 	def do_erp( self, erp_class, *args, **kwargs ):
 
