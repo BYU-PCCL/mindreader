@@ -25,48 +25,42 @@ class Runner(object):
 		#				simplified enforcer model 	
 		#----------------------------------------------------------
 
+		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
 
-		#enf_start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_start" )
-		#enf_goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_goal" )
-		enf_start_i = int(np.random.uniform(0, 10))
-		enf_goal_i = int(np.random.uniform(0, 10))
-		while enf_goal_i == enf_start_i:
-			enf_goal_i = int(np.random.uniform(0, 10))
+		cnt = len(self.locs)
+		enf_start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_start" )
+		enf_goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_goal" )
 		
 		enf_start = np.atleast_2d( self.locs[enf_start_i] )
 		enf_goal = np.atleast_2d( self.locs[enf_goal_i] )
-		path_noise = .00001
+		path_noise = .003
 		enf_plan = self.plan_path(enf_start, enf_goal)
 		enf_noisy_plan = [enf_plan[0]]
-		for i in xrange(1, len(enf_plan)-1):
-			# add noise to each location at 't_i'
-			loc_t = np.random.multivariate_normal(enf_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+		for i in xrange(1, len(enf_plan)-1): #loc_t = np.random.multivariate_normal(enf_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+			loc_x = Q.randn( mu=enf_plan[i][0], sigma=path_noise, name="enf_x_"+str(i) )
+			loc_y = Q.randn( mu=enf_plan[i][1], sigma=path_noise, name="enf_y_"+str(i) )
+			loc_t = [loc_x, loc_y]
 			enf_noisy_plan.append(loc_t)
 		enf_noisy_plan.append(enf_plan[-1])
 
-
-
-
-
-		#t = Q.choice( p=1.0/30*np.ones((1,30)), name="t" )
-		#t = int(np.random.uniform(0, 30))
-		#for display only - to show in the middle-ish
-		t = int(np.random.uniform(3, 10))
-
+		
 		enf_loc = np.atleast_2d(enf_plan[t])
 
 		#----------------- end of enforcer model ------------------	
 
 
-		
+		# XXX the runner wants to do goal inference to figure out the next step of the enf
+		# TWO desires:
+		# 1) high likelihood for a enf path conditioned on past locations
+		# 2) high likelihood for his own path conditioned of not being detected for the next step and conditioned
+		# 	 on past enf locations !
+
 		#----------------------------------------------------------
 		#				runner (intruder) model 	
 		#----------------------------------------------------------
 
-		start_i = int(np.random.uniform(0, 10))
-		goal_i = int(np.random.uniform(0, 10))
-		while goal_i == start_i:
-			goal_i = int(np.random.uniform(0, 10))
+		start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="int_start" )
+		goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="int_goal" )
 
 		start = np.atleast_2d( self.locs[start_i] )
 		goal = np.atleast_2d( self.locs[goal_i] )
@@ -74,35 +68,33 @@ class Runner(object):
 		my_plan = self.plan_path(start, goal)
 		my_loc = np.atleast_2d(my_plan[t])
 		my_noisy_plan = [my_plan[0]]
-		for i in xrange(1, len(my_plan)-1):
-			# add noise to each location at 't_i'
-			loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+		for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+			loc_x = Q.randn( mu=my_plan[i][0], sigma=path_noise, name="int_x_"+str(i) )
+			loc_y = Q.randn( mu=my_plan[i][1], sigma=path_noise, name="int_y_"+str(i) )
+			loc_t = [loc_x, loc_y]
 			my_noisy_plan.append(loc_t)
 		my_noisy_plan.append(my_plan[-1])
 
-		# set up the view (vision) of the enforcer
-		pre_enf_loc = scale_up(enf_plan[np.mod(t-1, len(enf_plan))])
+		# set up the enforcer view (forward vector, fv) for the next step
 		cur_enf_loc = scale_up(enf_plan[t])
-		fv = direction(cur_enf_loc, pre_enf_loc)
-		intersections = self.isovist.GetIsovistIntersections(cur_enf_loc, fv)
+		next_enf_loc = scale_up(enf_plan[t+1])
+		fv = direction(next_enf_loc, cur_enf_loc)
+		intersections = self.isovist.GetIsovistIntersections(next_enf_loc, fv)
 
 		# does the enforcer see me at time 't'
-		my_cur_loc = scale_up(my_plan[t])
-		was_i_seen = self.isovist.FindIntruderAtPoint( my_cur_loc, intersections )
-		detected_prob = 0.999*was_i_seen + 0.001*(1-was_i_seen) # ~ flip(seen*.999 + (1-seen*.001)
-		#detected = Q.flip( p=detected_prob, name="was_intruder_detected" )
-		print "INTRUDER DETECTED=", detected_prob
+		my_next_loc = scale_up(my_plan[t+1])
+		will_i_be_seen = self.isovist.FindIntruderAtPoint( my_next_loc, intersections )
+		detected_prob = 0.999*will_i_be_seen + 0.001*(1-will_i_be_seen) # ~ flip(seen*.999 + (1-seen*.001)
+		future_detection = Q.flip( p=detected_prob, name="int_detected" )
+
+		#print "INTRUDER DETECTED=", detected
 
 		#*************** PLOTTING [TESTING] CODE **************
 		if self.show:
 			fig = plt.figure(1)
 			fig.clf()
 			ax = fig.add_subplot(1, 1, 1)
-
-			
 			scale = 1
-
-
 		    # plot enf_plan
 			path = enf_plan
 			for i in range( 0, len(path)-1 ):
@@ -123,8 +115,6 @@ class Runner(object):
 			ax.scatter( goal[0,0] * scale, goal[0,1] * scale, color = "red")
 			ax.scatter( my_loc[0,0] * scale, my_loc[0,1] * scale, color = "magenta", s = 45, marker = "D")
 
-
-
 			# plot all of the destinations
 			# for i in xrange(10):
 			# 	ax.scatter( np.atleast_2d( self.locs[i] )[0,0] * scale, np.atleast_2d( self.locs[i] )[0,1]  * scale, color="red")
@@ -136,6 +126,8 @@ class Runner(object):
 
 			plt.ylim((0,scale))
 			plt.show()
+
+		return t, my_plan, future_detection
 
 
 
@@ -159,7 +151,6 @@ if __name__ == '__main__':
 
 		# load isovist
 		isovist = isovist.Isovist( load_isovist_map() )
-		print(isovist)
 
 		R = Runner(isovist, locs, seg_map)
 		R.run(None)
