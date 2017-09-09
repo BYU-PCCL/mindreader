@@ -9,6 +9,7 @@ class ProgramTrace(object):
 		self.model = model
 		self.cond_data_db = {}
 		self.cur_trace_score = 0.0
+		self.trace = {}
 
 		# register the available elementary random primitives
 		self.choice = self.make_erp( choice_erp )
@@ -25,9 +26,10 @@ class ProgramTrace(object):
 		self.model = model
 
 	def run_model(self):
+		self.trace = {}
 		self.cur_trace_score = 0.0
 		self.model.run(self)
-		return self.cur_trace_score
+		return self.cur_trace_score, self.trace
 
 	def make_erp( self, erp_class ):
 		return lambda *args, **kwargs: self.do_erp( erp_class, *args, **kwargs )
@@ -49,6 +51,8 @@ class ProgramTrace(object):
 		else:
 		    # we always sample from the prior
 			new_val = erp_class.sample( *args, **kwargs )
+
+		self.trace[name] = new_val
 
 		return new_val
 

@@ -17,7 +17,7 @@ class Runner(object):
 		#rx1,ry1,rx2,ry2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
 		self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
 		self.time_limit = 200
-		self.show = True
+		self.show = False
 
 
 	def run(self, Q):
