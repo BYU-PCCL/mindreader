@@ -107,7 +107,7 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2):
 	path = []
 	while len(path) < 1:
 		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2)
-	iters = 10000
+	iters = 100
 	std = 1.0/500
 	opt_path = optimize_path(x1, y1, x2, y2, path, iters, std)
 	sim_path = simplify_path(x1, y1, x2, y2, opt_path)

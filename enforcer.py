@@ -14,46 +14,108 @@ from multiprocessing import Pool
 	# to intercept the runner agent, the entruder must do 
 	# goal inference.
 
-# class Enforcer(object):
-# 	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
-# 		self.isovist = isovist
-# 		#TODO: varify these locations
-# 		self.locs = locs
-# 		rx1,ry1,rx2,ry2 = seg_map
-# 		#rx1,ry1,rx2,ry2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
-# 		self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
-# 		self.time_limit = 200
-# 		self.show = False
-
-
-# 	def run(self, Q):
-
-# 		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
-
-# 		cnt = len(self.locs)
-# 		enf_start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_start" )
-# 		enf_goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_goal" )
+class Chaser(object):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
+		self.isovist = isovist
+		#TODO: varify these locations
+		self.locs = locs
+		rx1,ry1,rx2,ry2 = seg_map
+		#rx1,ry1,rx2,ry2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
+		self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
+		self.time_limit = 200
+		self.show = False
+		# initialize model
+		self.intruder_model = create_intruder_model()
 		
-# 		enf_start = np.atleast_2d( self.locs[enf_start_i] )
-# 		enf_goal = np.atleast_2d( self.locs[enf_goal_i] )
-# 		path_noise = .003
-# 		enf_plan = self.plan_path(enf_start, enf_goal)
-# 		enf_noisy_plan = []
-# 		for i in xrange(1, len(enf_plan)-1): 
-# 			loc_x = Q.randn( mu=enf_plan[i][0], sigma=path_noise, name="enf_x_"+str(i) )
-# 			loc_y = Q.randn( mu=enf_plan[i][1], sigma=path_noise, name="enf_y_"+str(i) )
-# 			loc_t = [loc_x, loc_y]
-# 			enf_noisy_plan.append(loc_t)
+
+	def run(self, Q):
+		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
+
+		cnt = len(self.locs)
+		enf_start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_start" )
+		enf_goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_goal" )
+		
+		enf_start = np.atleast_2d( self.locs[enf_start_i] )
+		enf_goal = np.atleast_2d( self.locs[enf_goal_i] )
+		path_noise = .003
+		enf_plan = self.plan_path(enf_start, enf_goal)
+		enf_noisy_plan = []
+		for i in xrange(1, len(enf_plan)-1): 
+			loc_x = Q.randn( mu=enf_plan[i][0], sigma=path_noise, name="enf_x_"+str(i) )
+			loc_y = Q.randn( mu=enf_plan[i][1], sigma=path_noise, name="enf_y_"+str(i) )
+			loc_t = [loc_x, loc_y]
+			enf_noisy_plan.append(loc_t)
 			
-# 		enf_noisy_plan.append(enf_plan[-1])
-# 		enf_loc = np.atleast_2d(enf_plan[t])
+		enf_noisy_plan.append(enf_plan[-1])
+		enf_loc = np.atleast_2d(enf_plan[t])
 
-# 		### need to condition the previous time steps:
+		# create empty trace using model
+		q = p.ProgramTrace(self.intruder_model)
+		# condition q on Q 
+		q = condition_q(Q, q)
+		# run inference to get intruder's expected next step
+		post_sample_traces = run_inference(q, post_samples=10, samples =5)
+		exp_next_step = intruder_expected_next_step(post_sample_traces)
+
+		# XXX Need to make sure the runner wasn't seen in any of the previous time steps
+		# already_detected = 0
+		# for i in xrange(t):
+		# 	intersections = Q.cache["enf_intersections_t_"+str(i)]# get enforcer's fv for time t
+		# 	i_already_seen = self.isovist.FindIntruderAtPoint(my_noisy_plan[i], intersections)
+		# 	if (i_already_seen):
+		# 		detected_prob = 0.999*i_already_seen + 0.001*(1-i_already_seen) 
+
+		# if not i_already_seen:
+		# 	# set up the enforcer view (forward vector, fv) for the next step
+		# 	cur_enf_loc = scale_up(enf_noisy_plan[t])
+		# 	next_enf_loc = scale_up(enf_noisy_plan[t+1])
+		# 	fv = direction(next_enf_loc, cur_enf_loc)
+		# 	intersections = self.isovist.GetIsovistIntersections(next_enf_loc, fv)
+
+		# 	# does the enforcer see me at time 't'
+		# 	my_next_loc = scale_up(my_noisy_plan[t+1])
+		# 	will_i_be_seen = self.isovist.FindIntruderAtPoint( my_next_loc, intersections )
+		# 	detected_prob = 0.999*will_i_be_seen + 0.001*(1-will_i_be_seen) # ~ flip(seen*.999 + (1-seen*.001)
+		
+
+		# future_detection = Q.flip( p=detected_prob, name="int_detected" )
 
 
+	def condition_q(Q, q):
+		t = Q["t"]
+		q.condition("t", t)
+		trace.condition("enf_start", Q["enf_start"])
+		for i in xrange(t+1):
+			q.condition("enf_x_"+str(i), Q["enf_x_"+str(i)])
+		q.condition("int_start", Q["int_start"])
+		q.condition("int_goal", Q["int_goal"])
+		q.condition("int_detected", False)
+
+		for i in xrange(t+1):
+			q.cache["enf_intersections_t_"+str(i)] = Q.cache["enf_intersections_t_"] 
+
+		return q
 
 
-def create_model():
+def create_chaser_model():
+	locs = [
+            [ 0.100, 1-0.900 ],
+            [ 0.566, 1-0.854 ],
+            [ 0.761, 1-0.665 ],
+            [ 0.523, 1-0.604 ],
+            [ 0.241, 1-0.660 ],
+            [ 0.425, 1-0.591 ],
+            [ 0.303, 1-0.429 ],
+            [ 0.815, 1-0.402 ],
+            [ 0.675, 1-0.075 ],
+            [ 0.432, 1-0.098 ] ]
+	seg_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
+	isovist = i.Isovist( load_isovist_map() )
+	model = r.Chaser(isovist, locs, seg_map)
+	return model
+
+
+def create_runner_model():
 	locs = [
             [ 0.100, 1-0.900 ],
             [ 0.566, 1-0.854 ],
@@ -83,8 +145,8 @@ def example_conditions(trace):
 	t = 9
 	trace.condition("t", t)
 	for i in xrange(0, t+1):
-		trace.condition("enf_x_"+str(i+1), enf_locs[i][0])
-		trace.condition("enf_y_"+str(i+1), enf_locs[i][1])
+		trace.condition("enf_x_"+str(i), enf_locs[i][0])
+		trace.condition("enf_y_"+str(i), enf_locs[i][1])
 
 	trace.condition("int_start", 1)
 	trace.condition("int_goal", 8)
@@ -103,7 +165,7 @@ def example_conditions(trace):
 def par_params(cnt, samples):
 	params = ()
 	for i in xrange(cnt):
-		trace = example_conditions(p.ProgramTrace(create_model()))
+		trace = example_conditions(p.ProgramTrace(create_runner_model()))
 		params += ((trace, samples),)
 	return params
 
@@ -167,6 +229,8 @@ def intruder_expected_next_step(post_sample_traces):
 	for sample_i, trace in enumerate(post_sample_traces):
 		next_steps.append(trace["int_plan"][t+1])
 	expected_step = list(np.mean(next_steps, axis=0))
+	return expected_step
+
 def show_post_traces(post_sample_traces):
 	fig = plt.figure(1)
 	fig.clf()
@@ -203,6 +267,9 @@ def show_post_traces(post_sample_traces):
 		#ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
 		ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D") #Runner
 
+		exp_next_step = intruder_expected_next_step(post_sample_traces)
+		ax.scatter( exp_next_step[0] * scale, exp_next_step[1] * scale, color = "gold", s = 50, marker = "o")
+
 	# plot all of the destinations
 	# for i in xrange(10):
 	# 	ax.scatter( np.atleast_2d( self.locs[i] )[0,0] * scale, np.atleast_2d( self.locs[i] )[0,1]  * scale, color="red")
@@ -234,13 +301,36 @@ def show_post_traces(post_sample_traces):
 	#plt.legend(bbox_to_anchor=(1, 1), loc=1, borderaxespad=0.)
 	plt.show()
 
+def start_count_down():
+	#currently always begins the same location
+	enf_locs = [[ 0.100, 1-0.900 ]]
+	model = create_chaser_model()
+
+	Q = p.ProgramTrace(model)
+	Q.condition("enf_start", 0)
+	trace.condition("t", 0)
+
+	for t in xrange(30):
+		#condition past chaser location
+		for j in xrange(0, t+1):
+			trace.condition("enf_x_"+str(j+1), enf_locs[j][0])
+			trace.condition("enf_y_"+str(j+1), enf_locs[j][1])
+
+
+	# find foward vectors and cache the intersects 
+	next_enf_loc = scale_up(enf_locs[i])
+	cur_enf_loc = scale_up(enf_locs[i-1])
+	fv = direction(next_enf_loc, cur_enf_loc)
+	intersections = trace.model.isovist.GetIsovistIntersections(cur_enf_loc, fv)
+	intersection_cache.append(intersections)
+
 if __name__ == '__main__':
 
 	# XXX This is testing the runner model. We can view samples from the prior
 	# conditioned [on the variable list below]
 
 	# initialize model
-	model = create_model()
+	model = create_runner_model()
 	# create empty trace using model
 	trace = p.ProgramTrace(model)
 	# set testing/example conditions in trace

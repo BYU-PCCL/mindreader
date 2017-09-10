@@ -35,13 +35,13 @@ class Runner(object):
 		enf_goal = np.atleast_2d( self.locs[enf_goal_i] )
 		path_noise = .003
 		enf_plan = self.plan_path(enf_start, enf_goal)
-		enf_noisy_plan = []
+		enf_noisy_plan = [enf_plan[0]]
 		for i in xrange(1, len(enf_plan)-1): #loc_t = np.random.multivariate_normal(enf_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
 			loc_x = Q.randn( mu=enf_plan[i][0], sigma=path_noise, name="enf_x_"+str(i) )
 			loc_y = Q.randn( mu=enf_plan[i][1], sigma=path_noise, name="enf_y_"+str(i) )
 			loc_t = [loc_x, loc_y]
 			enf_noisy_plan.append(loc_t)
-			
+
 		enf_noisy_plan.append(enf_plan[-1])
 
 		
@@ -105,71 +105,67 @@ class Runner(object):
 		Q.keep("int_plan", my_noisy_plan)
 		Q.keep("enf_plan", enf_noisy_plan)
 
-		#*************** PLOTTING [TESTING] CODE **************
-		if self.show:
-			fig = plt.figure(1)
-			fig.clf()
-			ax = fig.add_subplot(1, 1, 1)
-			scale = 1
-			# plot enf_plan
-			path = enf_plan
-			for i in range( 0, len(path)-1 ):
-				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey' )
-				ax.scatter( enf_noisy_plan[i][0] * scale, enf_noisy_plan[i][1]  * scale, color="black", s = 3)
+		# #*************** PLOTTING [TESTING] CODE **************
+		# if self.show:
+		# 	fig = plt.figure(1)
+		# 	fig.clf()
+		# 	ax = fig.add_subplot(1, 1, 1)
+		# 	scale = 1
+		# 	# plot enf_plan
+		# 	path = enf_plan
+		# 	for i in range( 0, len(path)-1 ):
+		# 		ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey' )
+		# 		ax.scatter( enf_noisy_plan[i][0] * scale, enf_noisy_plan[i][1]  * scale, color="black", s = 3)
 
-			ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
-			ax.scatter( path[-1][0] * scale, path[-1][1] * scale, color = "red")
-			ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "blue", s = 55, marker="v")
+		# 	ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
+		# 	ax.scatter( path[-1][0] * scale, path[-1][1] * scale, color = "red")
+		# 	ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "blue", s = 55, marker="v")
 
-			# plot intruder_plan
-			path = my_plan
-			for i in range( 0, len(path)-1 ):
-				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey' )
-				ax.scatter( my_noisy_plan[i][0] * scale, my_noisy_plan[i][1]  * scale, color="black", s = 3)
+		# 	# plot intruder_plan
+		# 	path = my_plan
+		# 	for i in range( 0, len(path)-1 ):
+		# 		ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey' )
+		# 		ax.scatter( my_noisy_plan[i][0] * scale, my_noisy_plan[i][1]  * scale, color="black", s = 3)
 
-			ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
-			ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
-			ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D")
+		# 	ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
+		# 	ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
+		# 	ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D")
 
-			# plot all of the destinations
-			# for i in xrange(10):
-			# 	ax.scatter( np.atleast_2d( self.locs[i] )[0,0] * scale, np.atleast_2d( self.locs[i] )[0,1]  * scale, color="red")
+		# 	# plot all of the destinations
+		# 	# for i in xrange(10):
+		# 	# 	ax.scatter( np.atleast_2d( self.locs[i] )[0,0] * scale, np.atleast_2d( self.locs[i] )[0,1]  * scale, color="red")
 
-			# plot map
-			x1,y1,x2,y2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
-			for i in xrange(x1.shape[0]):
-				ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black' )
+		# 	# plot map
+		# 	x1,y1,x2,y2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
+		# 	for i in xrange(x1.shape[0]):
+		# 		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black' )
 
-			plt.ylim((0,scale))
-			plt.show()
+		# 	plt.ylim((0,scale))
+		# 	plt.show()
 
-		return t, my_plan, future_detection
-
-
+		# return t, my_plan, future_detection
 
 
+# if __name__ == '__main__':
+# 		locs = [
+#             [ 0.100, 1-0.900 ],
+#             [ 0.566, 1-0.854 ],
+#             [ 0.761, 1-0.665 ],
+#             [ 0.523, 1-0.604 ],
+#             [ 0.241, 1-0.660 ],
+#             [ 0.425, 1-0.591 ],
+#             [ 0.303, 1-0.429 ],
+#             [ 0.815, 1-0.402 ],
+#             [ 0.675, 1-0.075 ],
+#             [ 0.432, 1-0.098 ] ]
 
+# 		seg_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
 
-if __name__ == '__main__':
-		locs = [
-            [ 0.100, 1-0.900 ],
-            [ 0.566, 1-0.854 ],
-            [ 0.761, 1-0.665 ],
-            [ 0.523, 1-0.604 ],
-            [ 0.241, 1-0.660 ],
-            [ 0.425, 1-0.591 ],
-            [ 0.303, 1-0.429 ],
-            [ 0.815, 1-0.402 ],
-            [ 0.675, 1-0.075 ],
-            [ 0.432, 1-0.098 ] ]
+# 		# load isovist
+# 		isovist = isovist.Isovist( load_isovist_map() )
 
-		seg_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
-
-		# load isovist
-		isovist = isovist.Isovist( load_isovist_map() )
-
-		R = Runner(isovist, locs, seg_map)
-		R.run(None)
+# 		R = Runner(isovist, locs, seg_map)
+# 		R.run(None)
 
 
 
