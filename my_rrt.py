@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import random as rand
 
 
-STEP_SIZE = .03
+STEP_SIZE = .05
 
 # python -m cProfile -s tottime my_rrt.py
 
@@ -25,14 +25,19 @@ def line_intersect( X1,Y1,X2,Y2, X3,Y3,X4,Y4 ):
     u_a = numerator_a / (denominator+1e-20)
     u_b = numerator_b / (denominator+1e-20)
 
+    #TODO: replace u_a NAN with other value
+
     INT_X = X1 + X2_X1 * u_a
     INT_Y = Y1 + Y2_Y1 * u_a
-    try:
-        did_intersect = (u_a >= 0) & (u_a <= 1) & (u_b >= 0) & (u_b <= 1)
-    except:
-        # Don't know what's wrong with the code previously to this: 
-        # hacking it by saying that it did intersect if we divide by zero
-        return 1
+
+    #try:
+    did_intersect = (u_a >= 0) & (u_a <= 1) & (u_b >= 0) & (u_b <= 1)
+    # except:
+    #     # Don't know what's wrong with the code previously to this: 
+    #     # hacking it by saying that it did intersect if we divide by zero
+    #     print u_a
+    #     print u_b
+    #     return -1.0, -1.0, np.ones(1)
 
     return INT_X, INT_Y, did_intersect
 
@@ -97,37 +102,37 @@ def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit
     return run_rrt( start_pt, goal_pt, x1, y1, x2, y2, bias, plot, scale=scale, heat=heat )
 
 def biased_flip(prob=1):
-	if prob == 1:
-		return 1
-	if rand.randint(1,100) < (prob * 100.0)**0.5:
-	  return 1
-	return 0
+    if prob == 1:
+        return 1
+    if rand.randint(1,100) < (prob * 100.0)**0.5:
+      return 1
+    return 0
 
 def mag(one, two):
-	xs = one[0] - two[0]
-	ys = one[1] - two[1]
-	return (xs**2 + ys**2)**0.5
+    xs = one[0] - two[0]
+    ys = one[1] - two[1]
+    return (xs**2 + ys**2)**0.5
 
 def parent_count(nearest_ind, parents):
-	count = 0
-	while nearest_ind != 0:
-		nearest_ind = parents[ nearest_ind, 0 ]
-		count += 1
-	return count
+    count = 0
+    while nearest_ind != 0:
+        nearest_ind = parents[ nearest_ind, 0 ]
+        count += 1
+    return count
 
 parent_mem = {}
 
 def parent_count_mem(nearest_ind, parents):
-	count = 0
-	while nearest_ind != 0:
-		if nearest_ind in parent_mem:
-			count = parent_mem[nearest_ind] + 1
-			break
-		nearest_ind = parents[ nearest_ind, 0 ]
-		count += 1
+    count = 0
+    while nearest_ind != 0:
+        if nearest_ind in parent_mem:
+            count = parent_mem[nearest_ind] + 1
+            break
+        nearest_ind = parents[ nearest_ind, 0 ]
+        count += 1
 
-	parent_mem[nearest_ind] = count
-	return count
+    parent_mem[nearest_ind] = count
+    return count
 
 def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  bias=0.75, plot=False, step_limit=20000, scale=1, heat=None ):
     nodes = start_pt
@@ -135,10 +140,10 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
     time_step = 0
     for i in range( 0, step_limit ):
-    	
-    	#expand_flip = np.random.rand() 
+        
+        #expand_flip = np.random.rand() 
         while True:
-        	
+            
             random_point = np.random.rand(1,2) * scale
             expand_flip = np.random.rand()
 
@@ -161,19 +166,19 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
 
             int_x, int_y, intersection_indicators = line_intersect( 
-	            nearest_point[0,0], 
-	            nearest_point[0,1], 
-	            temp_pt[0,0], 
-	            temp_pt[0,1], 
-	            endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+                nearest_point[0,0], 
+                nearest_point[0,1], 
+                temp_pt[0,0], 
+                temp_pt[0,1], 
+                endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
 
             if intersection_indicators.any():
-            	#print "Intersects"
-            	continue
+                #print "Intersects"
+                continue
 
             if heat is not None:
-            	ts = parent_count_mem(nearest_ind, parents)
-            	#time_step = parent_count(nearest_ind, parents)
+                ts = parent_count_mem(nearest_ind, parents)
+                #time_step = parent_count(nearest_ind, parents)
                 danger = heat[int(temp_pt[0][1]*500)][int(temp_pt[0][0]*500)][time_step]
 
                 keep = biased_flip(1-danger)
@@ -193,7 +198,7 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
         # print "ndiff a :", ndiff[0][1]*500, ndiff[0][0]*500, "mag: ", mag( (ndiff[0][1]*500, ndiff[0][0]*500),(0,0))
         # print "new pt:", new_pt[0][1]*500, new_pt[0][0]*500
         #print "distance_to_other_points( new_pt, goal_pt ) :", distance_to_other_points( new_pt, goal_pt ) 
-        if distance_to_other_points( new_pt, goal_pt ) <= (.0001 * scale):
+        if distance_to_other_points( new_pt, goal_pt ) <= (.001 * scale):
             path = [ new_pt[0,:] ]
             while nearest_ind != 0:
                 path.append( nodes[nearest_ind,:] )
@@ -217,8 +222,8 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
             path.append(goal_pt[0,:])
 
             # for i in xrange(1,len(path)):
-            # 	#print path[i-1], path[i]
-            # 	print "distance:", distance_to_other_points( np.asarray([path[i-1]])* 500, np.asarray([path[i]])*500 ) 
+            #   #print path[i-1], path[i]
+            #   print "distance:", distance_to_other_points( np.asarray([path[i-1]])* 500, np.asarray([path[i]])*500 ) 
 
             return path
 

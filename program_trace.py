@@ -11,6 +11,7 @@ class ProgramTrace(object):
 		self.cur_trace_score = 0.0
 		self.trace = {}
 		self.cache = {}
+		self.obs = {}
 
 		# register the available elementary random primitives
 		self.choice = self.make_erp( choice_erp )
@@ -19,6 +20,13 @@ class ProgramTrace(object):
 		self.rand = self.make_erp( rand_erp )
 		self.beta = self.make_erp( beta_erp )
 
+	def set_obs(self, name=None, value=None):
+		self.obs[name] = value
+
+	def get_obs(self, name=None):
+		if name in self.obs:
+			return self.obs[name]
+		return None
 
 	def condition(self, name=None, value=None):
 		self.cond_data_db[name] = value
@@ -57,6 +65,14 @@ class ProgramTrace(object):
 			# joint probability / proposal, cancel out prior sample scores
 			new_val = self.cond_data_db[ name ]
 			erp_score = erp_class.score( new_val, *args, **kwargs )
+
+			# special case where I have to call the same random variable again
+			# specifically when the start and goal locations are the same
+			# if name in self.trace:
+			# 	prev_val = self.trace[name]
+			# 	prev_score = erp_class.score(prev_val, *args, **kwargs)
+			# 	self.cur_trace_score -= pre_score
+
 			self.cur_trace_score += erp_score
 		else:
 		    # we always sample from the prior

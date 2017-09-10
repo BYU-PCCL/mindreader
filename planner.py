@@ -107,10 +107,11 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2):
 	path = []
 	while len(path) < 1:
 		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2)
-	iters = 100
+	iters = 50
 	std = 1.0/500
-	opt_path = optimize_path(x1, y1, x2, y2, path, iters, std)
-	sim_path = simplify_path(x1, y1, x2, y2, opt_path)
+	#opt_path = optimize_path(x1, y1, x2, y2, path, iters, std)
+	#sim_path = simplify_path(x1, y1, x2, y2, opt_path)
+	sim_path = simplify_path(x1, y1, x2, y2, path)
 
 	times = np.arange(0, 600, 20) #600 seconds (5 mintues) 30 20-sec intervals
 	walking_path = walk_path(sim_path, 1.5/600.0, times)

@@ -11,10 +11,8 @@ import planner
 class Runner(object):
 	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
 		self.isovist = isovist
-		#TODO: varify these locations
 		self.locs = locs
 		rx1,ry1,rx2,ry2 = seg_map
-		#rx1,ry1,rx2,ry2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
 		self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
 		self.time_limit = 200
 		self.show = False
