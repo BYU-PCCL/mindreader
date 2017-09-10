@@ -14,6 +14,45 @@ from multiprocessing import Pool
 	# to intercept the runner agent, the entruder must do 
 	# goal inference.
 
+# class Enforcer(object):
+# 	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
+# 		self.isovist = isovist
+# 		#TODO: varify these locations
+# 		self.locs = locs
+# 		rx1,ry1,rx2,ry2 = seg_map
+# 		#rx1,ry1,rx2,ry2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
+# 		self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
+# 		self.time_limit = 200
+# 		self.show = False
+
+
+# 	def run(self, Q):
+
+# 		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
+
+# 		cnt = len(self.locs)
+# 		enf_start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_start" )
+# 		enf_goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_goal" )
+		
+# 		enf_start = np.atleast_2d( self.locs[enf_start_i] )
+# 		enf_goal = np.atleast_2d( self.locs[enf_goal_i] )
+# 		path_noise = .003
+# 		enf_plan = self.plan_path(enf_start, enf_goal)
+# 		enf_noisy_plan = []
+# 		for i in xrange(1, len(enf_plan)-1): 
+# 			loc_x = Q.randn( mu=enf_plan[i][0], sigma=path_noise, name="enf_x_"+str(i) )
+# 			loc_y = Q.randn( mu=enf_plan[i][1], sigma=path_noise, name="enf_y_"+str(i) )
+# 			loc_t = [loc_x, loc_y]
+# 			enf_noisy_plan.append(loc_t)
+			
+# 		enf_noisy_plan.append(enf_plan[-1])
+# 		enf_loc = np.atleast_2d(enf_plan[t])
+
+# 		### need to condition the previous time steps:
+
+
+
+
 def create_model():
 	locs = [
             [ 0.100, 1-0.900 ],
@@ -48,7 +87,7 @@ def example_conditions(trace):
 		trace.condition("enf_y_"+str(i+1), enf_locs[i][1])
 
 	trace.condition("int_start", 1)
-	trace.condition("int_goal", 9)
+	trace.condition("int_goal", 8)
 	trace.condition("int_detected", False)
 
 	try:
@@ -122,6 +161,12 @@ def run_inference_par(post_samples=5, samples=5):
 	results = p.map( sampling_importance, params )
 	return results
 
+def intruder_expected_next_step(post_sample_traces):
+	t = post_sample_traces[0]["t"]
+	next_steps = []
+	for sample_i, trace in enumerate(post_sample_traces):
+		next_steps.append(trace["int_plan"][t+1])
+	expected_step = list(np.mean(next_steps, axis=0))
 def show_post_traces(post_sample_traces):
 	fig = plt.figure(1)
 	fig.clf()
@@ -141,10 +186,10 @@ def show_post_traces(post_sample_traces):
 			else:
 				break
 		
-		ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="blue", s = 40, marker="x", label="Enforcer (t+1)")
-		ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green", label="Start location")
-		ax.scatter( path[-1][0] * scale, path[-1][1] * scale, color = "red", label="Entruder Inferred Goals")
-		ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "blue", s = 55, marker="v", label="Enforcer")
+		ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="blue", s = 40, marker="x") #enforcer (t+1)
+		ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green") #Start location
+		ax.scatter( path[-1][0] * scale, path[-1][1] * scale, color = "red") #Intruder Inferred Goals
+		ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "blue", s = 55, marker="v") #Enforcer
 
 		# plot intruder_plan
 		path = trace["int_plan"]
@@ -152,11 +197,11 @@ def show_post_traces(post_sample_traces):
 			ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey', alpha=0.7 )
 			if i+1 == t:
 				break		
-		ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="magenta", s = 40, marker="x", label="Runner (t+1)")
+		ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="magenta", s = 40, marker="x") #Runner (t+1)
 
 		ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
 		#ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
-		ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D", label="Runner")
+		ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D") #Runner
 
 	# plot all of the destinations
 	# for i in xrange(10):
@@ -171,10 +216,21 @@ def show_post_traces(post_sample_traces):
 	#savefig('p5-s5-ex1.png')
 	chartBox = ax.get_position()
 	ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*1, chartBox.height])
-	#ax.legend(loc='upper center', bbox_to_anchor=(1.15, 1), shadow=True, ncol=1)
+
+	enforcer_legend = plt.Line2D([0,0],[0,1], color='blue', marker='v', linestyle='')
+	runner_legend = plt.Line2D([0,0],[0,1], color='magenta', marker='D', linestyle='')
+	next_step_runner_legend = plt.Line2D([0,0],[0,1], color='magenta', marker='x', linestyle='')
+	next_step_enforcer_legend = plt.Line2D([0,0],[0,1], color='blue', marker='x', linestyle='')
+	starting_legend = plt.Line2D([0,0],[0,1], color='green', marker='o', linestyle='')
+	inference_legend = plt.Line2D([0,0],[0,1], color='red', marker='o', linestyle='')
+
+	#Create legend from custom artist/label lists
+	lgd = ax.legend([enforcer_legend,runner_legend,next_step_runner_legend, next_step_enforcer_legend, starting_legend, inference_legend], ["Enforcer", "Runner", "Runner Next Step", "Enforcer Next Step", "Starting Points", "Infered Goal"], loc='upper center', bbox_to_anchor=(1.15, 1), shadow=True, ncol=1, scatterpoints = 1)
+	# lgd = ax.legend(loc='upper center', bbox_to_anchor=(1.15, 1), shadow=True, ncol=1, scatterpoints = 1)
+
 	
-	fig.savefig('plot.png')
-	#plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=1, bbox_inches="tight")
+	fig.savefig('plot.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+	# plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=1, bbox_inches="tight")
 	#plt.legend(bbox_to_anchor=(1, 1), loc=1, borderaxespad=0.)
 	plt.show()
 
@@ -194,7 +250,7 @@ if __name__ == '__main__':
 	post_sample_traces = run_inference(trace, post_samples=10, samples =5)
 	#post_sample_traces = run_inference_par(post_samples=5, samples=5)
 	# pickel post sample traces
-	cPickle.dump( post_sample_traces, open("./9-09-p10-s5-1.cp","w") )
+	cPickle.dump( post_sample_traces, open("./9-09-p10-s5-4.cp","w") )
 	#shot posterior samples
 	show_post_traces(post_sample_traces)
 	print "DONE"
