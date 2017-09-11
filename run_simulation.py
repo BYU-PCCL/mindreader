@@ -6,6 +6,7 @@ from random import randint
 import matplotlib
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
+import dill
 
 def example_conditions(trace):
 	t = 9
@@ -167,11 +168,12 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 	
 	# show last isovist
 	if not intersections is None:
-		patches = [ Polygon(intersections, True)]
-		p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4)
-		colors = 100*np.random.rand(len(patches))
-		p.set_array(np.array(colors))
-		ax.add_collection(p)
+		if intersections.shape[1] == 2:
+			patches = [ Polygon(intersections, True)]
+			p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4)
+			colors = 100*np.random.rand(len(patches))
+			p.set_array(np.array(colors))
+			ax.add_collection(p)
 	# plot all of the destinations
 	# for i in xrange(10):
 	# 	ax.scatter( np.atleast_2d( self.locs[i] )[0,0] * scale, np.atleast_2d( self.locs[i] )[0,1]  * scale, color="red")
@@ -243,9 +245,11 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	runner_locs = runner_path
 
 	Q_history = []
+	Q_history_ts = []
 
 	# begin timer
-	TIME_LIMIT=30
+	#TIME_LIMIT=30
+	TIME_LIMIT = 1
 	for t in xrange(TIME_LIMIT):
 
 		# get true runner's location at time t + 1
@@ -322,17 +326,19 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 			save_chaser_post_traces(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, intersections=inters)
 			Q.keep("real_world_detection",True)
 			Q_history.append(Q)
-			return True, Q_history
+			Q_history_ts.append(Q.trace)
+			return True, Q_history_ts
 		else:
 			plot_name = str(sim_id)+"_t-"+str(t)+"_s-"+"F"+".png"
 			Q.keep("real_world_detection",False)
 			Q_history.append(Q)
+			Q_history_ts.append(Q.trace)
 			print "searching..."
 		
 		save_chaser_post_traces(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, intersections=inters)
 	
 	print "Failed: Runner Reached Goal"
-	return False, Q_history
+	return False, Q_history_ts
 
 if __name__ == '__main__':
 
@@ -358,7 +364,9 @@ if __name__ == '__main__':
 		detection, Q_history = run_simulation(sim_id, locs, seg_map, isovist, polys, epolys)
 		dets.append(detection)
 		simulation_Q_history.append(Q_history)
-		cPickle.dump( intersection_cache, open("./"+sim_id+".cp","w") )
+		#cPickle.dump( Q_history, open("./"+sim_id+"sim-"+str(x)+".cp","w") )
+		#dill.dumps(Q_history, open("./"+sim_id+"sim-"+str(x)+".cp","w"))
+	#dill.dumps( simulation_Q_history, open("./"+sim_id+"-all.cp","w") )
 
 	print dets 
 

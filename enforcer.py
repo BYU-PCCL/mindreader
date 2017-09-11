@@ -19,7 +19,7 @@ class Chaser(object):
 		self.isovist = isovist
 		self.locs = locs
 		rx1,ry1,rx2,ry2 = seg_map
-		self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
+		#self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
 		self.show = False
 		self.seg_map = seg_map
 		# initialize model
@@ -50,7 +50,7 @@ class Chaser(object):
 		if point_in_obstacle(runner_exp_next_step, self.epolys):
 			runner_exp_next_step = get_clear_goal(curr_loc, runner_exp_next_step, self.polys)
 
-		Q.keep("q", q)
+		Q.keep("q", q.trace)
 		Q.keep("runner_post_sample_traces", post_sample_traces)
 		Q.keep("runner_exp_next_step", runner_exp_next_step)
 
@@ -62,7 +62,7 @@ class Chaser(object):
 
 		# set up the enforcer view (forward vector, fv) for the next step
 		cur_enf_loc = scale_up(curr_loc)
-		next_enf_loc = scale_up(enf_plan[t+1])
+		next_enf_loc = scale_up(enf_plan[1])
 		fv = direction(next_enf_loc, cur_enf_loc)
 
 		intersections = self.isovist.GetIsovistIntersections(next_enf_loc, fv)
