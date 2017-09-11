@@ -11,6 +11,8 @@ STEP_SIZE = .05
 # adapted from the original matlab code at
 # http://www.mathworks.com/matlabcentral/fileexchange/27205-fast-line-segment-intersection
 def line_intersect( X1,Y1,X2,Y2, X3,Y3,X4,Y4 ):
+
+
     X4_X3 = X4.T - X3.T
     Y1_Y3 = Y1   - Y3.T
     Y4_Y3 = Y4.T - Y3.T
@@ -134,7 +136,7 @@ def parent_count_mem(nearest_ind, parents):
     parent_mem[nearest_ind] = count
     return count
 
-def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  bias=0.75, plot=False, step_limit=20000, scale=1, heat=None ):
+def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  goal_buffer=.005, bias=0.75, plot=False, step_limit=20000, scale=1, heat=None ):
     nodes = start_pt
     parents = np.atleast_2d( [0] )
 
@@ -174,6 +176,14 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
             if intersection_indicators.any():
                 #print "Intersects"
+                # calculate nearest intersection and trim new_pt
+                intersections = np.atleast_2d( [ int_x[intersection_indicators], int_y[intersection_indicators] ] ).T
+                distances = distance_to_other_points( nearest_point, intersections )
+                closest_intersection_index = np.argmin( distances )
+                new_pt = intersections[ closest_intersection_index:closest_intersection_index+1, : ]
+                safety = new_pt - nearest_point
+                safety = scale * 0.001 * safety / np.sqrt( np.sum( safety*safety ) )
+                new_pt = new_pt - safety
                 continue
 
             if heat is not None:
@@ -198,7 +208,7 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
         # print "ndiff a :", ndiff[0][1]*500, ndiff[0][0]*500, "mag: ", mag( (ndiff[0][1]*500, ndiff[0][0]*500),(0,0))
         # print "new pt:", new_pt[0][1]*500, new_pt[0][0]*500
         #print "distance_to_other_points( new_pt, goal_pt ) :", distance_to_other_points( new_pt, goal_pt ) 
-        if distance_to_other_points( new_pt, goal_pt ) <= (.001 * scale):
+        if distance_to_other_points( new_pt, goal_pt ) <= (goal_buffer * scale):
             path = [ new_pt[0,:] ]
             while nearest_ind != 0:
                 path.append( nodes[nearest_ind,:] )
