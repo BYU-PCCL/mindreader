@@ -215,23 +215,29 @@ def run_simulation(locs, seg_map, isovist, polys, epolys):
 	rx1,ry1,rx2,ry2 = seg_map
 	
 	intersection_cache = []
+	# create model of chaser
+	chaser_model = create_chaser_model(seg_map=seg_map, locs=locs, isovist=isovist)
+	# get evenly spead out starts and goal
+	int_start = randint(0, len(locs)-1)
+	int_goal = randint(0, len(locs)-1)
+	while(dist(locs[int_start], locs[int_goal]) <= 0.5):
+		int_goal = randint(0, len(locs)-1)
+	chas_start = randint(0, len(locs)-1)
+	while(dist(locs[int_start], locs[chas_start]) <= 0.5):
+		chas_start = randint(0, len(locs)-1)
+
+	runner_start_i = int_start
+	runner_start = locs[runner_start_i]
+	# get runner's random goal location (far enough from its start)
+	runner_goal_i = int_goal
+	runner_goal = locs[runner_goal_i]
+	# store history of runner's locations
+	runner_true_locs = [runner_start]
 	# get random start location
-	start_index = randint(0, len(locs)-1)
+	start_index = chas_start
 	chaser_start = locs[start_index]
 	# begin tracking history of movements
 	chaser_locs = [chaser_start]
-	# create model of chaser
-	chaser_model = create_chaser_model(seg_map=seg_map, locs=locs, isovist=isovist)
-
-	# create model of runner
-	# TODO ^
-	# get runner's random start location (far enough from chaser])
-	# TODO ^
-	runner_start = locs[1]
-	# get runner's random goal location (far enough from its start)
-	runner_goal = locs[8]
-	# store history of runner's locations
-	runner_true_locs = [runner_start]
 
 	#TEMP FOR TESTING (NAIVE RUNNER)
 	runner_path = planner.run_rrt_opt( np.atleast_2d(runner_start), 
@@ -239,13 +245,12 @@ def run_simulation(locs, seg_map, isovist, polys, epolys):
 	runner_locs = runner_path
 
 	# begin timer
-	#for t in xrange(TIME_LIMIT):
-	for t in xrange(0,11):
+	TIME_LIMIT=30
+	for t in xrange(TIME_LIMIT):
 
 		# get true runner's location at time t + 1
 		runner_true_loc = runner_locs[t+1]
 		runner_true_locs.append(runner_true_loc)
-		# TODO: replace with call to smart runner in another test case
 
 		# check if the runner has reached its goal 
 		if runner_true_loc == runner_goal:
@@ -257,8 +262,10 @@ def run_simulation(locs, seg_map, isovist, polys, epolys):
 		Q = p.ProgramTrace(chaser_model)
 		# condition the trace
 		Q.condition("t", t)
-		Q.set_obs("enf_start", start_index)
+		Q.set_obs("enf_start", chaser_start)
 		Q.condition("int_detected", True)
+		Q.condition("int_start", runner_start_i)
+
 		for pre_t in xrange(t+1):
 			Q.set_obs("enf_x_"+str(pre_t), chaser_locs[pre_t][0])
 			Q.set_obs("enf_y_"+str(pre_t), chaser_locs[pre_t][1])
@@ -296,16 +303,16 @@ def run_simulation(locs, seg_map, isovist, polys, epolys):
 			intersections = isovist.GetIsovistIntersections(scale_up(enf_next_step), fv)
 			runner_detected = isovist.FindIntruderAtPoint( scale_up(runner_true_loc), intersections)
 			inters = np.asarray(intersections)
-			inters /= 500.0
 
 		# store intersections at time 't' facing in the direction it stepped
 		fv = direction(scale_up(chaser_locs[t+1]), scale_up(chaser_locs[t]))
 		intersections = isovist.GetIsovistIntersections(scale_up(chaser_locs[t+1]), fv)
+		if not runner_detected:
+			runner_detected = isovist.FindIntruderAtPoint( scale_up(runner_true_loc), intersections)
 		intersection_cache.append(intersections)
 		if inters is None:
 			inters = np.asarray(intersections)
-			inters /= 500.0
-
+		inters /= 500.0
 
 		# plot behavior
 		plot_name = None
