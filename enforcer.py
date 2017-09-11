@@ -20,8 +20,8 @@ class Chaser(object):
 		self.locs = locs
 		rx1,ry1,rx2,ry2 = seg_map
 		self.plan_path = lambda start_loc, goal_loc: planner.run_rrt_opt( start_loc, goal_loc, rx1,ry1,rx2,ry2 )
-		#self.time_limit = 200
 		self.show = False
+		self.seg_map = seg_map
 		# initialize model
 		self.runner_model = create_runner_model(seg_map=seg_map, locs=locs, isovist=isovist)
 		
@@ -51,7 +51,9 @@ class Chaser(object):
 		Q.keep("runner_exp_next_step", runner_exp_next_step)
 
 		# plan path toward anticipated location (t+1) for runner
-		enf_plan = self.plan_path(np.atleast_2d( curr_loc), np.atleast_2d( runner_exp_next_step))
+		#enf_plan = self.plan_path(np.atleast_2d( curr_loc), np.atleast_2d( runner_exp_next_step))
+		rx1,ry1,rx2,ry2 = self.seg_map
+		enf_plan = planner.run_rrt_opt( np.atleast_2d( curr_loc), np.atleast_2d( runner_exp_next_step), rx1,ry1,rx2,ry2 , just_need_step=True)
 		Q.keep("enf_plan", enf_plan)
 
 		# set up the enforcer view (forward vector, fv) for the next step

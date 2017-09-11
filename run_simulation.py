@@ -271,6 +271,11 @@ def run_simulation(locs, seg_map, isovist):
 		# replan to its expected next step
 		enf_plan = planner.run_rrt_opt( np.atleast_2d(chaser_locs[t]), 
 			np.atleast_2d(exp_next_step), rx1,ry1,rx2,ry2, just_need_step=True)
+
+		if enf_plan is None:
+			print "trying again"
+			t -= 1
+			continue
 		enf_next_step = enf_plan[1]
 		# store step made
 		chaser_locs.append(enf_next_step)
@@ -329,9 +334,13 @@ if __name__ == '__main__':
 	isovist = i.Isovist( load_isovist_map() )
 
 
-
+	dets =[]
 	# TODO: for x simulations
-	detection = run_simulation(locs, seg_map, isovist)
+	for x in xrange(10):
+		detection = run_simulation(locs, seg_map, isovist)
+		dets.append(detection)
+
+	print dets 
 
 
 

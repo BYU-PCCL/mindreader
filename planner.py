@@ -111,12 +111,16 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, just_need_step=False):
 	gb = .0001
 	if just_need_step:
 		gb = .3
+	cnt = 0
 	while True:
 		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2, goal_buffer=gb)
 		if not path is None:
 			if len(path) < 1:
 				gb += .002
 			 	print "expanding rrt goal buffer:", gb
+			 	cnt +=1
+			 	if cnt  >= 3:
+			 		return None # expressing that we are probably inside a building now
 			else:
 				break
 	iters = 50
