@@ -207,7 +207,7 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 
 	if plot_name is None:
 		plot_name = str(int(time.time()))+".png"
-	fig.savefig(plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+	fig.savefig("./plots/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
 	#plt.show()
 
 def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
@@ -248,8 +248,7 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	Q_history_ts = []
 
 	# begin timer
-	#TIME_LIMIT=30
-	TIME_LIMIT = 1
+	TIME_LIMIT=30
 	for t in xrange(TIME_LIMIT):
 
 		# get true runner's location at time t + 1
@@ -277,7 +276,7 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 				Q.cache["enf_intersections_t_"+str(pre_t)] = intersection_cache[pre_t]
 
 		# run inference
-		post_sample_traces = run_inference(Q, post_samples=1, samples=1)
+		post_sample_traces = run_inference(Q, post_samples=5, samples=5)
 		exp_next_step = expected_next_step_replanning(post_sample_traces, "enf_plan")
 
 		if point_in_obstacle(exp_next_step, epolys):
@@ -359,13 +358,15 @@ if __name__ == '__main__':
 	dets =[]
 	simulation_Q_history = []
 	# TODO: for x simulations
-	for x in xrange(1):
+	for x in xrange(15):
 		sim_id = str(int(time.time()))
 		detection, Q_history = run_simulation(sim_id, locs, seg_map, isovist, polys, epolys)
 		dets.append(detection)
 		simulation_Q_history.append(Q_history)
-		#cPickle.dump( Q_history, open("./"+sim_id+"sim-"+str(x)+".cp","w") )
+		cPickle.dump( Q_history, open("./simulations/"+sim_id+"sim-"+str(x)+".cp","w") )
 		#dill.dumps(Q_history, open("./"+sim_id+"sim-"+str(x)+".cp","w"))
+	cPickle.dump( simulation_Q_history, open("./simulations/"+sim_id+"sim-all.cp","w") )
+	print simulation_Q_history
 	#dill.dumps( simulation_Q_history, open("./"+sim_id+"-all.cp","w") )
 
 	print dets 

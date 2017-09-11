@@ -44,7 +44,7 @@ class Chaser(object):
 		q = self.condition_q(Q, q)
 
 		# run inference to get intruder's expected next step
-		post_sample_traces = run_inference(q, post_samples=6, samples=5) # 10, 5
+		post_sample_traces = run_inference(q, post_samples=10, samples=5) # 10, 5
 		runner_exp_next_step = expected_next_step(post_sample_traces, "int_plan")
 
 		if point_in_obstacle(runner_exp_next_step, self.epolys):
