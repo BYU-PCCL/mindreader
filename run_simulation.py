@@ -266,7 +266,7 @@ def run_simulation(locs, seg_map, isovist, polys, epolys):
 				Q.cache["enf_intersections_t_"+str(pre_t)] = intersection_cache[pre_t]
 
 		# run inference
-		post_sample_traces = run_inference(Q, post_samples=3, samples=2)
+		post_sample_traces = run_inference(Q, post_samples=1, samples=1)
 		exp_next_step = expected_next_step_replanning(post_sample_traces, "enf_plan")
 
 		if point_in_obstacle(exp_next_step, epolys):
