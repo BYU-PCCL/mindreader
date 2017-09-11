@@ -41,8 +41,6 @@ class Runner(object):
 			enf_noisy_plan.append(loc_t)
 
 		enf_noisy_plan.append(enf_plan[-1])
-
-		
 		enf_loc = np.atleast_2d(enf_plan[t])
 
 		#----------------- end of enforcer model ------------------	
@@ -60,6 +58,8 @@ class Runner(object):
 
 		start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="int_start" )
 		goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="int_goal" )
+
+
 
 		start = np.atleast_2d( self.locs[start_i] )
 		goal = np.atleast_2d( self.locs[goal_i] )
