@@ -6,6 +6,7 @@ from random import randint
 import matplotlib
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
+import cPickle
 
 
 def example_conditions(trace):
