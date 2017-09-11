@@ -173,6 +173,8 @@ class Isovist:
 
         if not full_iso:
             intersections.insert(0, agentLocation)
+
+        intersections.append(intersections[0])
         return intersections
 
     def GetIsovistIntersections_vec(self, agentLocation, direction, UAVFieldOfVision = 40, full_iso=False):

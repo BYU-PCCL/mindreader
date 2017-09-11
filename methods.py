@@ -58,7 +58,7 @@ def load_isovist_map( fn="./paths.txt" ):
 		for pair in toList:
 			#pair[1] = 1.0 - pair[1]
 			pair[0] = int (pair[0] *500)
-			pair[1] = int (pair[1] *500)
+			pair[1] = int ((1-pair[1]) *500)
 
 		#toList = [toList[i:i+2] for i in range(0, len(toList), 2)]
 		#toList[-1].insert(0, toList[0][0])

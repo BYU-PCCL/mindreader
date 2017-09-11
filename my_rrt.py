@@ -100,8 +100,7 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
         # find nearest node
         distances = distance_to_other_points( random_point, nodes )
         if np.isnan(np.sum(distances)):
-            #print "distances:", distances
-            return []
+            return None
         nearest_ind = np.argmin( distances )
 
         nearest_point = nodes[ nearest_ind:nearest_ind+1, : ]
@@ -121,7 +120,7 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
         new_pt = nearest_point + ndiff
 
-        if distance_to_other_points( new_pt, goal_pt ) < (.005 * scale):
+        if distance_to_other_points( new_pt, goal_pt ) < (goal_buffer * scale):
             #print('i', i)
             path = [ new_pt[0,:] ]
             while nearest_ind != 0:
@@ -162,6 +161,8 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
             new_pt = new_pt - safety
 
         nodes = np.vstack(( nodes, new_pt ))
+        # if np.isnan(np.sum(nodes)):
+        #     print "new_pt", new_pt
         parents = np.vstack(( parents, nearest_ind ))
 
     #print('No path found!')

@@ -147,7 +147,7 @@ def sampling_importance(trace, samples=3):
 	return traces[chosen_index]
 
 
-def run_inference(trace, post_samples=5, samples=5):
+def run_inference(trace, post_samples=1, samples=1):
 	post_traces = []
 	for i in  tqdm(xrange(post_samples)):
 		post_sample_trace = sampling_importance(trace, samples=samples)
