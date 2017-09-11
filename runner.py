@@ -41,7 +41,7 @@ class Runner(object):
 			enf_noisy_plan.append(loc_t)
 
 		enf_noisy_plan.append(enf_plan[-1])
-		enf_loc = np.atleast_2d(enf_plan[t])
+		enf_loc = np.atleast_2d(enf_noisy_plan[t])
 
 		#----------------- end of enforcer model ------------------	
 

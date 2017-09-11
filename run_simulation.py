@@ -208,9 +208,7 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 	fig.savefig(plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
 	#plt.show()
 
-def run_simulation(locs, seg_map, isovist, polys, epolys):
-	# simulation id
-	sim_id = str(int(time.time()))
+def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	# unpack 
 	rx1,ry1,rx2,ry2 = seg_map
 	
@@ -244,6 +242,8 @@ def run_simulation(locs, seg_map, isovist, polys, epolys):
 		np.atleast_2d(runner_goal), rx1,ry1,rx2,ry2 )
 	runner_locs = runner_path
 
+	Q_history = []
+
 	# begin timer
 	TIME_LIMIT=30
 	for t in xrange(TIME_LIMIT):
@@ -262,7 +262,7 @@ def run_simulation(locs, seg_map, isovist, polys, epolys):
 		Q = p.ProgramTrace(chaser_model)
 		# condition the trace
 		Q.condition("t", t)
-		Q.set_obs("enf_start", chaser_start)
+		Q.set_obs("enf_start", chas_start)
 		Q.condition("int_detected", True)
 		Q.condition("int_start", runner_start_i)
 
@@ -320,14 +320,19 @@ def run_simulation(locs, seg_map, isovist, polys, epolys):
 			print "Success: Runner Detected Before Goal"
 			plot_name = str(sim_id)+"_t-"+str(t)+"_s-"+"T"+".png"
 			save_chaser_post_traces(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, intersections=inters)
-			return True
-			break
+			Q.keep("real_world_detection",True)
+			Q_history.append(Q)
+			return True, Q_history
 		else:
 			plot_name = str(sim_id)+"_t-"+str(t)+"_s-"+"F"+".png"
+			Q.keep("real_world_detection",False)
+			Q_history.append(Q)
 			print "searching..."
 		
 		save_chaser_post_traces(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, intersections=inters)
-
+	
+	print "Failed: Runner Reached Goal"
+	return False, Q_history
 
 if __name__ == '__main__':
 
@@ -346,10 +351,14 @@ if __name__ == '__main__':
 	polys, epolys = load_segs()
 
 	dets =[]
+	simulation_Q_history = []
 	# TODO: for x simulations
-	for x in xrange(10):
-		detection = run_simulation(locs, seg_map, isovist, polys, epolys)
+	for x in xrange(1):
+		sim_id = str(int(time.time()))
+		detection, Q_history = run_simulation(sim_id, locs, seg_map, isovist, polys, epolys)
 		dets.append(detection)
+		simulation_Q_history.append(Q_history)
+		cPickle.dump( intersection_cache, open("./"+sim_id+".cp","w") )
 
 	print dets 
 
