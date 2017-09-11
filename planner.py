@@ -72,7 +72,10 @@ def walk_path(path, speed, times):
 				#we overshot, the location is beween i-1 and i
 				overshoot = distances_from_start[i] - desired_distance
 				past_prev = dist_to_prev - overshoot
-				frac = past_prev / dist_to_prev
+				if dist_to_prev == 0:
+					frac = 1
+				else:
+					frac = past_prev / dist_to_prev
 				locations[time_i] = [prev[0] * (1.0 - frac) + cur[0] * frac, prev[1] * (1.0 - frac) + cur[1] * frac]
 				used_up_time = True
 				break
@@ -105,13 +108,15 @@ def simplify_path(x1, y1, x2, y2, orig_path):
 
 def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2):
 	path = []
+	gb = .005
 	while len(path) < 1:
-		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2)
+		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2, goal_buffer=gb)
+		gb += .65
 	iters = 50
 	std = 1.0/500
-	#opt_path = optimize_path(x1, y1, x2, y2, path, iters, std)
-	#sim_path = simplify_path(x1, y1, x2, y2, opt_path)
-	sim_path = simplify_path(x1, y1, x2, y2, path)
+	opt_path = optimize_path(x1, y1, x2, y2, path, iters, std)
+	sim_path = simplify_path(x1, y1, x2, y2, opt_path)
+	#sim_path = simplify_path(x1, y1, x2, y2, path)
 
 	times = np.arange(0, 600, 20) #600 seconds (5 mintues) 30 20-sec intervals
 	walking_path = walk_path(sim_path, 1.5/600.0, times)
@@ -119,7 +124,7 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2):
 
 
 
-def get_distanes(x1, y1, x2, y2, start_pt, goal_pt):
+def get_distances(x1, y1, x2, y2, start_pt, goal_pt):
     distances = []
     for i in xrange(100):
 		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2)
