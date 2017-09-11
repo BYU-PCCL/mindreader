@@ -1,7 +1,7 @@
 
 import program_trace as p
 import runner as r
-from methods import load_isovist_map, scale_up, direction, load_segs, point_in_obstacle
+from methods import load_isovist_map, scale_up, direction, load_segs, point_in_obstacle, get_clear_goal
 from my_rrt import *
 import copy
 from scipy.misc import logsumexp

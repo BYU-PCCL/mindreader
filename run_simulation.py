@@ -1,5 +1,5 @@
 from enforcer import *
-from methods import load_isovist_map, scale_up, direction, dist, detect, load_segs
+from methods import load_isovist_map, scale_up, direction, dist, detect, load_segs, get_clear_goal,point_in_obstacle
 from my_rrt import *
 import isovist as i
 from random import randint

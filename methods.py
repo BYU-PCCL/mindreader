@@ -71,8 +71,8 @@ def load_isovist_map( fn="./paths.txt" ):
 		polygonSegments.append(temp)
 
 		load_segs( fn="./paths.txt" )
-
 	dim = 500
+	return polygonSegments
 
 def load_segs( fn="./paths.txt" ):
 	poly_segs = []

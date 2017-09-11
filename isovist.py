@@ -259,6 +259,8 @@ class Isovist:
         uniqueVectorY = point[1] - self.agentLocation[1]
         uniqueMag = math.sqrt(uniqueVectorX**2 + uniqueVectorY**2)
 
+        
+
         #dot product equation stuff to find angle between the two vectors
         dotProduct = uniqueVectorX * dx + uniqueVectorY * dy
         
