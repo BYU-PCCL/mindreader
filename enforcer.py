@@ -1,7 +1,7 @@
 
 import program_trace as p
 import runner as r
-from methods import load_isovist_map, scale_up, direction
+from methods import load_isovist_map, scale_up, direction, load_segs, point_in_obstacle
 from my_rrt import *
 import copy
 from scipy.misc import logsumexp
@@ -24,6 +24,7 @@ class Chaser(object):
 		self.seg_map = seg_map
 		# initialize model
 		self.runner_model = create_runner_model(seg_map=seg_map, locs=locs, isovist=isovist)
+		self.polys, self.epolys = load_segs()
 		
 
 	def run(self, Q):
@@ -45,6 +46,9 @@ class Chaser(object):
 		# run inference to get intruder's expected next step
 		post_sample_traces = run_inference(q, post_samples=6, samples=5) # 10, 5
 		runner_exp_next_step = expected_next_step(post_sample_traces, "int_plan")
+
+		if point_in_obstacle(runner_exp_next_step, self.epolys):
+			runner_exp_next_step = get_clear_goal(curr_loc, runner_exp_next_step, self.polys)
 
 		Q.keep("q", q)
 		Q.keep("runner_post_sample_traces", post_sample_traces)

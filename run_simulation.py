@@ -1,5 +1,5 @@
 from enforcer import *
-from methods import load_isovist_map, scale_up, direction, dist, detect
+from methods import load_isovist_map, scale_up, direction, dist, detect, load_segs
 from my_rrt import *
 import isovist as i
 from random import randint
@@ -208,7 +208,7 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 	fig.savefig(plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
 	#plt.show()
 
-def run_simulation(locs, seg_map, isovist):
+def run_simulation(locs, seg_map, isovist, polys, epolys):
 	# simulation id
 	sim_id = str(int(time.time()))
 	# unpack 
@@ -268,6 +268,10 @@ def run_simulation(locs, seg_map, isovist):
 		# run inference
 		post_sample_traces = run_inference(Q, post_samples=3, samples=2)
 		exp_next_step = expected_next_step_replanning(post_sample_traces, "enf_plan")
+
+		if point_in_obstacle(exp_next_step, epolys):
+			exp_next_step = get_clear_goal(chaser_locs[t], exp_next_step, polys)
+
 		# replan to its expected next step
 		enf_plan = planner.run_rrt_opt( np.atleast_2d(chaser_locs[t]), 
 			np.atleast_2d(exp_next_step), rx1,ry1,rx2,ry2, just_need_step=True)
@@ -332,12 +336,12 @@ if __name__ == '__main__':
 		[ 0.432, 1-0.098 ] ]
 	seg_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
 	isovist = i.Isovist( load_isovist_map() )
-
+	polys, epolys = load_segs()
 
 	dets =[]
 	# TODO: for x simulations
 	for x in xrange(10):
-		detection = run_simulation(locs, seg_map, isovist)
+		detection = run_simulation(locs, seg_map, isovist, polys, epolys)
 		dets.append(detection)
 
 	print dets 

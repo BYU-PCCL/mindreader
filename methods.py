@@ -10,6 +10,7 @@ from numpy import atleast_2d
 import pickle
 from my_rrt import *
 from tqdm import tqdm
+import matplotlib.path as mplPath
 
 
 
@@ -46,6 +47,7 @@ def load_polygons( fn="./paths.txt" ):
     return bdata
 
 def load_isovist_map( fn="./paths.txt" ):
+	
 	polygonSegments = []
 	for line in open( fn ):
 		line = line.strip('\n')
@@ -55,13 +57,11 @@ def load_isovist_map( fn="./paths.txt" ):
 		it = iter(toList)
 		toList = [toList[i:i+2] for i in range(0, len(toList), 2)]
 
+
 		for pair in toList:
-			#pair[1] = 1.0 - pair[1]
 			pair[0] = int (pair[0] *500)
 			pair[1] = int ((1-pair[1]) *500)
 
-		#toList = [toList[i:i+2] for i in range(0, len(toList), 2)]
-		#toList[-1].insert(0, toList[0][0])
 		temp = []
 		for i in xrange(1,len(toList)):
 			pair = (toList[i-1], toList[i])
@@ -70,19 +70,81 @@ def load_isovist_map( fn="./paths.txt" ):
 		
 		polygonSegments.append(temp)
 
+		load_segs( fn="./paths.txt" )
+
 	dim = 500
 
-	'''border'''
-	polygonSegments.append([ 
-		[ (-5,-5),(505,-5) ], 
-		[ (505,-5),(505,505) ],
-		[ (505,505), (-5,505)],
-		[ (-5,505), (-5,-5) ]
-		])
-        #print "toList:", toList
-	# for p in polygonSegments:
-	# 	print "\n", p
-	return polygonSegments
+def load_segs( fn="./paths.txt" ):
+	poly_segs = []
+	poly_easy = []
+	for line in open( fn ):
+		line = line.strip('\n')
+		toList = line.split(' ')
+		toList = [(float(x)/1000) for x in toList]
+		
+		it = iter(toList)
+		toList = [toList[i:i+2] for i in range(0, len(toList), 2)]
+		
+		for pair in toList:
+			pair[0] = pair[0]
+			pair[1] = (1-pair[1])
+
+		toList.append(toList[0])
+		poly_segs.append(toList)
+		poly_easy.append(mplPath.Path(np.asarray(toList)))
+
+	return poly_segs, poly_easy
+
+def line_intersection(line1, line2):
+	xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+	ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1]) #Typo was here
+
+	def det(a, b):
+		return a[0] * b[1] - a[1] * b[0]
+
+	div = det(xdiff, ydiff)
+	if div == 0:
+		return None, None
+		#raise Exception('lines do not intersect')
+
+	d = (det(*line1), det(*line2))
+	x = det(d, xdiff) / div
+	y = det(d, ydiff) / div
+	return x, y
+
+# assuming that the point is in an obstacle
+def get_clear_goal(st, poi, poly_segs):
+	my_line = [st, poi]
+	inter_point = None
+	# iter through each polygon
+	for poly in poly_segs:
+		# iter through each line seg
+		for i in xrange(0,len(poly)-2):
+			line = [poly[i],poly[i+1]]
+			x, y = line_intersection(my_line, line)
+			if not x is None:
+				inter_point = [x,y]
+				break
+		if not inter_point is None:
+			break
+
+	my_dir = direction(st, poi)
+	dx = my_dir[0] 
+	dy = my_dir[1]
+	dMag = math.sqrt(dx**2 + dy**2)
+	ndx = dx/dMag
+	ndy = dy/dMag
+	ndx *= .025
+	ndy *= .025
+	return [poi[0]+ndx, poi[1]+ndy]
+
+
+
+def point_in_obstacle(point, poly_segs):
+	for poly in poly_segs:
+		if poly.contains_point(point):
+			return True, poly
+	return False, None
 
 
 def load_data(filename="data"):
