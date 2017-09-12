@@ -26,7 +26,7 @@ class Chaser(object):
 		self.runner_model = create_runner_model(seg_map=seg_map, locs=locs, isovist=isovist)
 		self.polys, self.epolys = load_segs()
 		
-	def run(self, Q):
+	def run_simple(self, Q):
 		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
 
 		# current location of chaser (at time 't')
@@ -67,7 +67,7 @@ class Chaser(object):
 		runner_detected = Q.flip( p=detected_prob, name="int_detected" )
 
 
-	def run_soph(self, Q):
+	def run(self, Q):
 		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
 
 		# current location of chaser (at time 't')
@@ -152,8 +152,8 @@ def create_runner_model(seg_map=None, locs=None, isovist=None):
 		seg_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
 	if isovist is None:
 		isovist = i.Isovist( load_isovist_map() )
-	model = r.Runner_Minus(isovist=isovist, locs=locs, seg_map=seg_map)
-	#model = r.Runner(isovist=isovist, locs=locs, seg_map=seg_map)
+	#model = r.Runner_Minus(isovist=isovist, locs=locs, seg_map=seg_map)
+	model = r.Runner(isovist=isovist, locs=locs, seg_map=seg_map)
 	return model
 
 
