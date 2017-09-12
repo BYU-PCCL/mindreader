@@ -26,8 +26,48 @@ class Chaser(object):
 		self.runner_model = create_runner_model(seg_map=seg_map, locs=locs, isovist=isovist)
 		self.polys, self.epolys = load_segs()
 		
-
 	def run(self, Q):
+		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
+
+		# current location of chaser (at time 't')
+		curr_loc = [Q.get_obs("enf_x_"+str(t)), Q.get_obs("enf_y_"+str(t))]
+
+		# randomly choose a start and goal for runner
+		cnt = len(self.locs)
+		int_start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="int_start" )
+		int_goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="int_goal" )
+
+		rx1,ry1,rx2,ry2 = self.seg_map
+		int_plan = planner.run_rrt_opt( np.atleast_2d(self.locs[int_start_i]), 
+			np.atleast_2d( self.locs[int_goal_i]), rx1,ry1,rx2,ry2)
+		
+		# plan path toward anticipated location (t+1) for runner
+		#enf_plan = self.plan_path(np.atleast_2d( curr_loc), np.atleast_2d( runner_exp_next_step))
+		t_ = min(t+9, len(int_plan)-1)
+		rx1,ry1,rx2,ry2 = self.seg_map
+		enf_plan = planner.run_rrt_opt( np.atleast_2d( curr_loc), np.atleast_2d( int_plan[t_]), rx1,ry1,rx2,ry2 , just_need_step=True)
+		Q.keep("enf_plan", enf_plan)
+		Q.keep("int_plan", int_plan)
+
+		# set up the enforcer view (forward vector, fv) for the next step
+		cur_enf_loc = scale_up(curr_loc)
+		next_enf_loc = scale_up(enf_plan[1])
+		fv = direction(next_enf_loc, cur_enf_loc)
+
+		intersections = self.isovist.GetIsovistIntersections(next_enf_loc, fv)
+
+		# does the enforcer see me at time 't'
+		runner_next_loc = scale_up(int_plan[t+1])
+		will_runner_be_seen = self.isovist.FindIntruderAtPoint( int_plan[t+1], intersections )
+		detected_prob = 0.999*will_runner_be_seen + 0.001*(1-will_runner_be_seen) # ~ flip(seen*.999 + (1-seen*.001)
+		
+		# XXX should consider seeing if the enforcer will see the intruder 
+		# before reaching its simulated goal location, not just in the next step
+		# down side: it would need more isovist calculations at each step
+		runner_detected = Q.flip( p=detected_prob, name="int_detected" )
+
+
+	def run_soph(self, Q):
 		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
 
 		# current location of chaser (at time 't')
@@ -44,7 +84,7 @@ class Chaser(object):
 		q = self.condition_q(Q, q)
 
 		# run inference to get intruder's expected next step
-		post_sample_traces = run_inference(q, post_samples=10, samples=5) # 10, 5
+		post_sample_traces = run_inference(q, post_samples=6, samples=5) # 10, 5
 		runner_exp_next_step = expected_next_step(post_sample_traces, "int_plan")
 
 		if point_in_obstacle(runner_exp_next_step, self.epolys):
@@ -112,7 +152,8 @@ def create_runner_model(seg_map=None, locs=None, isovist=None):
 		seg_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
 	if isovist is None:
 		isovist = i.Isovist( load_isovist_map() )
-	model = r.Runner(isovist=isovist, locs=locs, seg_map=seg_map)
+	model = r.Runner_Minus(isovist=isovist, locs=locs, seg_map=seg_map)
+	#model = r.Runner(isovist=isovist, locs=locs, seg_map=seg_map)
 	return model
 
 
@@ -165,6 +206,15 @@ def expected_next_step(post_sample_traces, name):
 	t = post_sample_traces[0]["t"]
 	next_steps = []
 	for sample_i, trace in enumerate(post_sample_traces):
+		next_steps.append(trace[name][t+1])
+	expected_step = list(np.mean(next_steps, axis=0))
+	return expected_step
+
+def expected_int_future_step(post_sample_traces, name="int_plan"):
+	t = post_sample_traces[0]["t"]
+	next_steps = []
+	for sample_i, trace in enumerate(post_sample_traces):
+		t_fut = min(t+9, len(trace[name]))
 		next_steps.append(trace[name][t+1])
 	expected_step = list(np.mean(next_steps, axis=0))
 	return expected_step

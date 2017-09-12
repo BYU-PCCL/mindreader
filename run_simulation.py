@@ -123,43 +123,43 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 		#*****************************************************************************************************
 		# ploting inference information over the chaser's model of the intruder's model of the chaser's model
 		#*****************************************************************************************************
-		run_post_sample_traces = trace["runner_post_sample_traces"]
-		for sample_i, r_trace in enumerate(run_post_sample_traces):
-			# plot enf_plan
-			path = r_trace["enf_plan"]
-			for i in range( 0, len(path)-1 ):
-				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'blue' ,linestyle="--", alpha=0.5)
-				if i <= t+1:
-					ax.scatter( path[i][0] * scale, path[i][1]  * scale, color="navy", s = 3)
-				else:
-					break
+		# run_post_sample_traces = trace["runner_post_sample_traces"]
+		# for sample_i, r_trace in enumerate(run_post_sample_traces):
+		# 	# plot enf_plan
+		# 	path = r_trace["enf_plan"]
+		# 	for i in range( 0, len(path)-1 ):
+		# 		ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'blue' ,linestyle="--", alpha=0.5)
+		# 		if i <= t+1:
+		# 			ax.scatter( path[i][0] * scale, path[i][1]  * scale, color="navy", s = 3)
+		# 		else:
+		# 			break
 			
-			ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="blue", s = 40, marker="x", linewidths=1) #enforcer (t+1)
+		# 	ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="blue", s = 40, marker="x", linewidths=1) #enforcer (t+1)
 			
-			#ax.scatter( path[-1][0] * scale, path[-1][1] * scale, color = "red") #Intruder Inferred Goals of the Enforcer
-			ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "blue", s = 55, marker="v") #Enforcer
-			ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green") #Start location
+		# 	#ax.scatter( path[-1][0] * scale, path[-1][1] * scale, color = "red") #Intruder Inferred Goals of the Enforcer
+		# 	ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "blue", s = 55, marker="v") #Enforcer
+		# 	ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green") #Start location
 
-			# plot intruder_plan
-			path = r_trace["int_plan"]
-			for i in range( 0, len(path)-1 ):
-				if t == 0:
-					break
-				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey', alpha=0.6, linestyle="-")
-				if i+1 == t:
-					break		
-			ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="magenta", s = 40, marker="x",linewidths=1) #Runner (t+1)
+		# 	# plot intruder_plan
+		# 	path = r_trace["int_plan"]
+		# 	for i in range( 0, len(path)-1 ):
+		# 		if t == 0:
+		# 			break
+		# 		ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey', alpha=0.6, linestyle="-")
+		# 		if i+1 == t:
+		# 			break		
+		# 	ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="magenta", s = 40, marker="x",linewidths=1) #Runner (t+1)
 
 			
-			#ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
-			ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D") #Runner
+		# 	#ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
+		# 	ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D") #Runner
 
-			exp_next_step = expected_next_step(run_post_sample_traces, "int_plan")
-			ax.scatter( exp_next_step[0] * scale, exp_next_step[1] * scale, color = "darkorchid", s = 50, marker = "o")
-			ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
+		# 	exp_next_step = expected_next_step(run_post_sample_traces, "int_plan")
+		# 	ax.scatter( exp_next_step[0] * scale, exp_next_step[1] * scale, color = "darkorchid", s = 50, marker = "o")
+		# 	ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
 
-		ax.scatter( enf_true_next_x * scale, enf_true_next_y  * scale, color="darkturquoise", s = 80, marker="v") #enforcer (t+1)
-		#*******************************************************
+		# ax.scatter( enf_true_next_x * scale, enf_true_next_y  * scale, color="darkturquoise", s = 80, marker="v") #enforcer (t+1)
+		# #*******************************************************
 
 	if not runner_true_locs is None:
 		for i in range( 0, len(runner_true_locs)-1):
@@ -169,7 +169,7 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 	
 	# show last isovist
 	if not intersections is None:
-		if intersections.shape[1] == 2:
+		if not intersections.shape[0] == 0:
 			patches = [ Polygon(intersections, True)]
 			p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4)
 			colors = 100*np.random.rand(len(patches))
@@ -219,13 +219,19 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	# create model of chaser
 	chaser_model = create_chaser_model(seg_map=seg_map, locs=locs, isovist=isovist)
 	# get evenly spead out starts and goal
-	int_start = randint(0, len(locs)-1)
-	int_goal = randint(0, len(locs)-1)
-	while(dist(locs[int_start], locs[int_goal]) <= 0.5):
-		int_goal = randint(0, len(locs)-1)
-	chas_start = randint(0, len(locs)-1)
-	while(dist(locs[int_start], locs[chas_start]) <= 0.5):
-		chas_start = randint(0, len(locs)-1)
+
+	# int_start = randint(0, len(locs)-1)
+	# int_goal = randint(0, len(locs)-1)
+	# while(dist(locs[int_start], locs[int_goal]) <= 0.5):
+	# 	int_goal = randint(0, len(locs)-1)
+	# chas_start = randint(0, len(locs)-1)
+	# while(dist(locs[int_start], locs[chas_start]) <= 0.5):
+	# 	chas_start = randint(0, len(locs)-1)
+
+	int_start = 0
+	int_goal = 8
+
+	chas_start = 1
 
 	runner_start_i = int_start
 	runner_start = locs[runner_start_i]
@@ -257,10 +263,14 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 		runner_true_locs.append(runner_true_loc)
 
 		# check if the runner has reached its goal 
-		if runner_true_loc == runner_goal:
-			print "Failed: Runner Reached Goal"
-			return False
-			break
+		try:
+			if runner_true_loc == runner_goal:
+				print "Failed: Runner Reached Goal"
+				return False
+				break
+		except:
+			print "FAILED"
+			return False,  Q_history_ts
 
 		# create empty trace
 		Q = p.ProgramTrace(chaser_model)
@@ -277,13 +287,15 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 				Q.cache["enf_intersections_t_"+str(pre_t)] = intersection_cache[pre_t]
 
 		# run inference
-		post_sample_traces = run_inference(Q, post_samples=5, samples=5)
+		post_sample_traces = run_inference(Q, post_samples=3, samples=3)
 		exp_next_step = expected_next_step_replanning(post_sample_traces, "enf_plan")
 
 		if point_in_obstacle(exp_next_step, epolys):
 			exp_next_step = get_clear_goal(chaser_locs[t], exp_next_step, polys)
 
+		Q.keep("post_sample_traces", post_sample_traces)
 		# replan to its expected next step
+		#t_ = min(t, len())
 		enf_plan = planner.run_rrt_opt( np.atleast_2d(chaser_locs[t]), 
 			np.atleast_2d(exp_next_step), rx1,ry1,rx2,ry2, just_need_step=True)
 
@@ -359,7 +371,7 @@ if __name__ == '__main__':
 	dets =[]
 	simulation_Q_history = []
 	# TODO: for x simulations
-	for x in xrange(15):
+	for x in xrange(3):
 		sim_id = str(int(time.time()))
 		detection, Q_history = run_simulation(sim_id, locs, seg_map, isovist, polys, epolys)
 		dets.append(detection)

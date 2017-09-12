@@ -109,6 +109,44 @@ class Runner(object):
 		Q.keep("enf_plan", enf_noisy_plan)
 
 
+class Runner_Minus(object):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
+		self.isovist = isovist
+		self.locs = locs
+		rx1,ry1,rx2,ry2 = seg_map
+		self.seg_map = seg_map
+		self.show = False
+
+
+	def run(self, Q):
+		
+		#----------------------------------------------------------
+		#				runner (minus) model 	
+		#----------------------------------------------------------
+
+		start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="int_start" )
+		goal_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="int_goal" )
+
+		start = np.atleast_2d( self.locs[start_i] )
+		goal = np.atleast_2d( self.locs[goal_i] )
+
+		#my_plan = self.plan_path(start, goal)
+		my_plan = planner.run_rrt_opt( np.atleast_2d(start), 
+		np.atleast_2d(goal), rx1,ry1,rx2,ry2 )
+		my_loc = np.atleast_2d(my_plan[t])
+		my_noisy_plan = [my_plan[0]]
+		for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+			loc_x = Q.randn( mu=my_plan[i][0], sigma=path_noise, name="int_x_"+str(i) )
+			loc_y = Q.randn( mu=my_plan[i][1], sigma=path_noise, name="int_y_"+str(i) )
+			loc_t = [loc_x, loc_y]
+			my_noisy_plan.append(loc_t)
+		my_noisy_plan.append(my_plan[-1])
+
+		# for rendering purposes
+		Q.keep("int_plan", my_noisy_plan)
+
+
+
 
 
 
