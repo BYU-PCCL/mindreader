@@ -186,9 +186,6 @@ def sampling_importance(trace, samples=3):
 	# get weight for score
 	weights = np.exp(scores - logsumexp(scores))
 
-	# normalize between 0 and 1
-	weights = weights / sum(weights)
-
 	# sample
 	chosen_index = np.random.choice([i for i in range(samples)], p=weights)
 	return traces[chosen_index]
