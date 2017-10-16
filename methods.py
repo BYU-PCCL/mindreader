@@ -126,15 +126,21 @@ def get_clear_goal(st, poi, poly_segs):
 		if not inter_point is None:
 			break
 
-	my_dir = direction(st, poi)
-	dx = my_dir[0] 
-	dy = my_dir[1]
+
+	dir_to_move_goal = direction(inter_point, st)
+
+	dx = dir_to_move_goal[0] 
+	dy = dir_to_move_goal[1]
+
 	dMag = math.sqrt(dx**2 + dy**2)
+
 	ndx = dx/dMag
 	ndy = dy/dMag
+
 	ndx *= .025
 	ndy *= .025
-	return [poi[0]+ndx, poi[1]+ndy]
+
+	return [dx[0]+ndx, dy[1]+ndy]
 
 
 
