@@ -10,6 +10,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import planner
 import time
+from random import randint
 
 #import seaborn
 #seaborn.set_style(style='white')
@@ -85,10 +86,10 @@ class Chaser(object):
 
 		# run inference to get intruder's expected next step
 		post_sample_traces = run_inference(q, post_samples=6, samples=5) # 10, 5
-		runner_exp_next_step = expected_next_step(post_sample_traces, "int_plan")
+		runner_exp_next_step, runner_exp_path = rand_expected_future_step(post_sample_traces, "int_plan")
 
-		if point_in_obstacle(runner_exp_next_step, self.epolys):
-			runner_exp_next_step = get_clear_goal(curr_loc, runner_exp_next_step, self.polys)
+		#if point_in_obstacle(runner_exp_next_step, self.epolys):
+		#	runner_exp_next_step = get_clear_goal(curr_loc, runner_exp_next_step, self.polys)
 
 		Q.keep("q", q.trace)
 		Q.keep("runner_post_sample_traces", post_sample_traces)
@@ -103,13 +104,15 @@ class Chaser(object):
 		# set up the enforcer view (forward vector, fv) for the next step
 		cur_enf_loc = scale_up(curr_loc)
 		next_enf_loc = scale_up(enf_plan[1])
-		fv = direction(next_enf_loc, cur_enf_loc)
+		next_int_loc = scale_up(runner_exp_path[t+1])
+
+		fv = direction(next_int_loc, cur_enf_loc)
 
 		intersections = self.isovist.GetIsovistIntersections(next_enf_loc, fv)
 
 		# does the enforcer see me at time 't'
-		runner_next_loc = scale_up(runner_exp_next_step)
-		will_runner_be_seen = self.isovist.FindIntruderAtPoint( runner_next_loc, intersections )
+		#runner_next_loc = scale_up(runner_exp_next_step)
+		will_runner_be_seen = self.isovist.FindIntruderAtPoint( next_int_loc, intersections )
 		detected_prob = 0.999*will_runner_be_seen + 0.001*(1-will_runner_be_seen) # ~ flip(seen*.999 + (1-seen*.001)
 		
 		# XXX should consider seeing if the enforcer will see the intruder 
@@ -199,6 +202,20 @@ def run_inference(trace, post_samples=1, samples=1):
 	return post_traces
 
 
+def rand_expected_future_step(post_sample_traces, name):
+	t = post_sample_traces[0]["t"]
+	rand_path = randint(0, len(post_sample_traces)-1)
+	paths = []
+	next_steps = []
+	for sample_i, trace in enumerate(post_sample_traces):
+		t_fut = min(t+7, len(trace[name]))
+		next_steps.append(trace[name][t_fut])
+		paths.append(trace[name])
+	print "rand_path", rand_path
+	print "next_steps", next_steps
+	print "len(paths):", len(paths)
+	return next_steps[rand_path], paths[rand_path]
+
 def expected_next_step(post_sample_traces, name):
 	t = post_sample_traces[0]["t"]
 	next_steps = []
@@ -211,8 +228,8 @@ def expected_int_future_step(post_sample_traces, name="int_plan"):
 	t = post_sample_traces[0]["t"]
 	next_steps = []
 	for sample_i, trace in enumerate(post_sample_traces):
-		t_fut = min(t+9, len(trace[name]))
-		next_steps.append(trace[name][t+1])
+		t_fut = min(t+7, len(trace[name]))
+		next_steps.append(trace[name][t_fut])
 	expected_step = list(np.mean(next_steps, axis=0))
 	return expected_step
 
