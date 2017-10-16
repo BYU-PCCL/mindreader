@@ -98,7 +98,7 @@ class Chaser(object):
 		# plan path toward anticipated location (t+1) for runner
 		#enf_plan = self.plan_path(np.atleast_2d( curr_loc), np.atleast_2d( runner_exp_next_step))
 		rx1,ry1,rx2,ry2 = self.seg_map
-		enf_plan = planner.run_rrt_opt( np.atleast_2d( curr_loc), np.atleast_2d( runner_exp_next_step), rx1,ry1,rx2,ry2 , just_need_step=True)
+		enf_plan = planner.run_rrt_opt( np.atleast_2d( curr_loc), np.atleast_2d( runner_exp_next_step), rx1,ry1,rx2,ry2)
 		Q.keep("enf_plan", enf_plan)
 
 		# set up the enforcer view (forward vector, fv) for the next step
@@ -228,7 +228,7 @@ def expected_int_future_step(post_sample_traces, name="int_plan"):
 	t = post_sample_traces[0]["t"]
 	next_steps = []
 	for sample_i, trace in enumerate(post_sample_traces):
-		t_fut = min(t+7, len(trace[name]))
+		t_fut = min(t+5, len(trace[name]))
 		next_steps.append(trace[name][t_fut])
 	expected_step = list(np.mean(next_steps, axis=0))
 	return expected_step

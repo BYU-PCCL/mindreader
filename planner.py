@@ -106,7 +106,7 @@ def simplify_path(x1, y1, x2, y2, orig_path):
 	return points
 
 
-def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, just_need_step=False):
+def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, slow=False):
 	path = []
 	gb = .0001
 	# if just_need_step:
@@ -133,7 +133,11 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, just_need_step=False):
 	#sim_path = simplify_path(x1, y1, x2, y2, path)
 
 	times = np.arange(0, 600, 20) #600 seconds (10 minute) (5 mintues) 30 20-sec intervals
-	walking_path = walk_path(sim_path, 1.75/600.0, times)
+	speed = 1.75/600
+	if slow:
+		speed = 1.3/600
+
+	walking_path = walk_path(sim_path, speed, times)
 	return walking_path
 
 
