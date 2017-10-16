@@ -88,7 +88,7 @@ def test_chaser():
 	save_chaser_post_traces(post_sample_traces)
 
 
-def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_true_locs=None, intersections=None):
+def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_true_locs=None, chaser_true_locs=None, intersections=None):
 	fig = plt.figure(1)
 	fig.clf()
 	ax = fig.add_subplot(1, 1, 1)
@@ -99,11 +99,28 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 	for i in xrange(x1.shape[0]):
 		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black' )
 
+	# show last isovist
+	if not intersections is None:
+		if not intersections.shape[0] == 0:
+			patches = [ Polygon(intersections, True)]
+			p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.4)
+			colors = 100*np.random.rand(len(patches))
+			p.set_array(np.array(colors))
+			ax.add_collection(p)
+
+	#plot true enforcer's movements
+	path = chaser_true_locs
+	for i in range( 0, len(path)):
+		ax.scatter( path[i][0] * scale, path[i][1]  * scale, color="black", s = 4)
+	enf_true_next_x = path[len(path)-1][0]
+	enf_true_next_y = path[len(path)-1][1]
+
 	for sample_i, trace in enumerate(chaser_post_sample_traces):
 		# get time
 		t = trace["t"]
 		# plot enf_plan
 		path = trace["enf_plan"]
+		#path = chaser_true_locs
 		for i in range( 0, len(path)-1):
 			ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'black', linestyle=":", linewidth=2)
 			# if i <= t+1:
@@ -114,9 +131,8 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 		
 		ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green") #Start location
 		#ax.scatter( path[-1][0] * scale, path[-1][1] * scale, color = "red") 
-		ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "darkslategray", s = 55, marker="v") #Enforcer
-		enf_true_next_x = path[1][0]
-		enf_true_next_y = path[1][1]
+		#ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "darkslategray", s = 55, marker="v") #Enforcer
+		
 		#chaser_exp_next_step = expected_next_step(chaser_post_sample_traces,"enf_plan")
 		#ax.scatter( chaser_exp_next_step[0] * scale, chaser_exp_next_step[1] * scale, color = "darkcyan", s = 50, marker = "o")
 
@@ -129,9 +145,11 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 			path = r_trace["enf_plan"]
 			for i in range( 0, len(path)-1 ):
 				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'blue' ,linestyle="--", alpha=0.5)
-				if i <= t+1:
-					ax.scatter( path[i][0] * scale, path[i][1]  * scale, color="navy", s = 3)
-				else:
+				# if i <= t+1:
+				# 	ax.scatter( path[i][0] * scale, path[i][1]  * scale, color="orange", s = 3)
+				# else:
+				# 	break
+				if i > t+1:
 					break
 			
 			ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="blue", s = 40, marker="x", linewidths=1) #enforcer (t+1)
@@ -148,14 +166,14 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey', alpha=0.6, linestyle="-")
 				if i+1 == t:
 					break		
-			ax.scatter( path[t+1][0] * scale, path[t+1][1]  * scale, color="magenta", s = 40, marker="x",linewidths=1) #Runner (t+1)
+			ax.scatter( path[t+6][0] * scale, path[t+5][1]  * scale, color="magenta", s = 40, marker="x",linewidths=1) #Runner (t+1)
 
 			
 			#ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
 			ax.scatter( path[t][0] * scale, path[t][1] * scale, color = "magenta", s = 45, marker = "D") #Runner
 
 			exp_next_step = expected_next_step(run_post_sample_traces, "int_plan")
-			ax.scatter( exp_next_step[0] * scale, exp_next_step[1] * scale, color = "darkorchid", s = 50, marker = "o")
+			#ax.scatter( exp_next_step[0] * scale, exp_next_step[1] * scale, color = "darkorchid", s = 50, marker = "o")
 			ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green")
 
 		ax.scatter( enf_true_next_x * scale, enf_true_next_y  * scale, color="darkturquoise", s = 80, marker="v") #enforcer (t+1)
@@ -167,14 +185,7 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 	runnert_last = runner_true_locs[-1]
 	ax.scatter( runnert_last[0] * scale, runnert_last[1]  * scale, color="orange", s = 80, marker="D")
 	
-	# show last isovist
-	if not intersections is None:
-		if not intersections.shape[0] == 0:
-			patches = [ Polygon(intersections, True)]
-			p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4)
-			colors = 100*np.random.rand(len(patches))
-			p.set_array(np.array(colors))
-			ax.add_collection(p)
+	
 	# plot all of the destinations
 	# for i in xrange(10):
 	# 	ax.scatter( np.atleast_2d( self.locs[i] )[0,0] * scale, np.atleast_2d( self.locs[i] )[0,1]  * scale, color="red")
@@ -189,7 +200,7 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 	next_step_runner_legend = plt.Line2D([0,0],[0,1], color='magenta', marker='x', linestyle='')
 	next_step_enforcer_legend = plt.Line2D([0,0],[0,1], color='blue', marker='x', linestyle='')
 	starting_legend = plt.Line2D([0,0],[0,1], color='green', marker='o', linestyle='')
-	runner_exp_next_legend = plt.Line2D([0,0],[0,1], color='darkorchid', marker='o', linestyle='')
+	#runner_exp_next_legend = plt.Line2D([0,0],[0,1], color='darkorchid', marker='o', linestyle='')
 	enforcer_plan_legend = plt.Line2D([0,0],[0,1], color='black', linestyle=':', linewidth=2)
 	enforcer_next_legend = plt.Line2D([0,0],[0,1], color='darkturquoise', marker='v', linestyle='')
 	true_runner_legend = plt.Line2D([0,0],[0,1], color='orange', marker='D', linestyle='')
@@ -198,16 +209,19 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 	# create legend from custom artist/label lists
 	lgd = ax.legend([enforcer_legend,runner_legend,next_step_runner_legend, 
 		next_step_enforcer_legend, starting_legend, 
-		runner_exp_next_legend, enforcer_plan_legend, enforcer_next_legend,
+		#runner_exp_next_legend, 
+		enforcer_plan_legend, enforcer_next_legend,
 		true_runner_legend, true_runner_path_legend], 
-		["C ", "C's Infer R Loc", "C's Infer R's Next", "C's Infer R's Infer C's Next", 
-		"Starting Points", "C's Infer R's Exp Next", "C's Plan to Infer R's Exp Next", 
+		["C ", "C's Infer R Loc", "C's Infer R's t+n", "C's Infer R's Infer C's Next", 
+		"Starting Points", 
+		#"C's Infer R's Exp Next", 
+		"C's Plan to Inter R", 
 		"C's Next", "True R", "True R Path"], 
 		loc='upper center', 
 		bbox_to_anchor=(1.15, 1), shadow=True, ncol=1, scatterpoints = 1)
 
 	if plot_name is None:
-		plot_name = str(int(time.time()))+".png"
+		plot_name = str(int(time.time()))+".eps"
 	fig.savefig("./plots/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
 	#plt.show()
 
@@ -274,19 +288,19 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	TIME_LIMIT=30
 	for t in xrange(TIME_LIMIT):
 
-		# get true runner's location at time t + 1
-		runner_true_loc = runner_locs[t+1]
-		runner_true_locs.append(runner_true_loc)
-
 		# check if the runner has reached its goal 
 		try:
-			if runner_true_loc == runner_goal:
+			if runner_locs[t+1] == runner_goal:
 				print "Failed: Runner Reached Goal"
 				return False
 				break
 		except:
 			print "FAILED"
 			return False,  Q_history_ts
+
+		# get true runner's location at time t + 1
+		runner_true_loc = runner_locs[t+1]
+		runner_true_locs.append(runner_true_loc)
 
 
 		#---------------------------------
@@ -306,17 +320,20 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 				Q.cache["enf_intersections_t_"+str(pre_t)] = intersection_cache[pre_t]
 
 		# run inference
-		post_sample_traces = run_inference(Q, post_samples=3, samples=3)
-		exp_next_step = expected_next_step_replanning(post_sample_traces, "enf_plan")
+		post_sample_traces = run_inference(Q, post_samples=1, samples=3)
+		exp_next_step, exp_enf_path = rand_expected_future_step(post_sample_traces, "enf_plan")
 
-		if point_in_obstacle(exp_next_step, epolys):
-			exp_next_step = get_clear_goal(chaser_locs[t], exp_next_step, polys)
+		# if point_in_obstacle(exp_next_step, epolys):
+		# 	print "here--------"
+		# 	exp_next_step = get_clear_goal(chaser_locs[t], exp_next_step, polys)
 
 		Q.keep("post_sample_traces", post_sample_traces)
 		# replan to its expected next step
 		#t_ = min(t, len())
-		enf_plan = planner.run_rrt_opt( np.atleast_2d(chaser_locs[t]), 
-			np.atleast_2d(exp_next_step), rx1,ry1,rx2,ry2, just_need_step=True)
+		# enf_plan = planner.run_rrt_opt( np.atleast_2d(chaser_locs[t]), 
+		# 	np.atleast_2d(exp_next_step), rx1,ry1,rx2,ry2)
+
+		enf_plan = exp_enf_path
 
 		# ------------------------------------
 
@@ -324,7 +341,6 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 			print "trying again"
 			t -= 1
 			continue
-
 
 		enf_next_step = enf_plan[1]
 		# store step made
@@ -357,20 +373,20 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 		plot_name = None
 		if runner_detected:
 			print "Success: Runner Detected Before Goal"
-			plot_name = str(sim_id)+"_t-"+str(t)+"_s-"+"T"+".png"
-			save_chaser_post_traces(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, intersections=inters)
+			plot_name = str(sim_id)+"_t-"+str(t)+"_s-"+"T"+".eps"
+			save_chaser_post_traces(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, chaser_true_locs=chaser_locs, intersections=inters)
 			Q.keep("real_world_detection",True)
 			Q_history.append(Q)
 			Q_history_ts.append(Q.trace)
 			return True, Q_history_ts
 		else:
-			plot_name = str(sim_id)+"_t-"+str(t)+"_s-"+"F"+".png"
+			plot_name = str(sim_id)+"_t-"+str(t)+"_s-"+"F"+".eps"
 			Q.keep("real_world_detection",False)
 			Q_history.append(Q)
 			Q_history_ts.append(Q.trace)
 			print "searching..."
 		
-		save_chaser_post_traces(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, intersections=inters)
+		save_chaser_post_traces(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, chaser_true_locs=chaser_locs, intersections=inters)
 	
 	print "Failed: Runner Reached Goal"
 	return False, Q_history_ts
