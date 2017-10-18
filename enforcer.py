@@ -26,9 +26,10 @@ class Chaser(object):
 		# initialize model
 		self.runner_model = create_runner_model(seg_map=seg_map, locs=locs, isovist=isovist)
 		self.polys, self.epolys = load_segs()
-		
-	def run_simple(self, Q):
-		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
+	
+	#run_naive
+	def run_naive(self, Q):
+		t = Q.choice( p=1.0/41*np.ones((1,41)), name="t" )
 
 		# current location of chaser (at time 't')
 		curr_loc = [Q.get_obs("enf_x_"+str(t)), Q.get_obs("enf_y_"+str(t))]
@@ -40,13 +41,12 @@ class Chaser(object):
 
 		rx1,ry1,rx2,ry2 = self.seg_map
 		int_plan = planner.run_rrt_opt( np.atleast_2d(self.locs[int_start_i]), 
-			np.atleast_2d( self.locs[int_goal_i]), rx1,ry1,rx2,ry2)
+			np.atleast_2d( self.locs[int_goal_i]), rx1,ry1,rx2,ry2, slow=True)
 		
 		# plan path toward anticipated location (t+1) for runner
 		#enf_plan = self.plan_path(np.atleast_2d( curr_loc), np.atleast_2d( runner_exp_next_step))
-		t_ = min(t+9, len(int_plan)-1)
-		rx1,ry1,rx2,ry2 = self.seg_map
-		enf_plan = planner.run_rrt_opt( np.atleast_2d( curr_loc), np.atleast_2d( int_plan[t_]), rx1,ry1,rx2,ry2 , just_need_step=True)
+		t_ = min(t+12, len(int_plan)-1)
+		enf_plan = planner.run_rrt_opt( np.atleast_2d( curr_loc), np.atleast_2d( int_plan[t_]), rx1,ry1,rx2,ry2)
 		Q.keep("enf_plan", enf_plan)
 		Q.keep("int_plan", int_plan)
 
@@ -69,7 +69,7 @@ class Chaser(object):
 
 
 	def run(self, Q):
-		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
+		t = Q.choice( p=1.0/41*np.ones((1,41)), name="t" )
 
 		# current location of chaser (at time 't')
 		curr_loc = [Q.get_obs("enf_x_"+str(t)), Q.get_obs("enf_y_"+str(t))]
@@ -211,9 +211,9 @@ def rand_expected_future_step(post_sample_traces, name):
 		t_fut = min(t+7, len(trace[name]))
 		next_steps.append(trace[name][t_fut])
 		paths.append(trace[name])
-	print "rand_path", rand_path
-	print "next_steps", next_steps
-	print "len(paths):", len(paths)
+	# print "rand_path", rand_path
+	# print "next_steps", next_steps
+	# print "len(paths):", len(paths)
 	return next_steps[rand_path], paths[rand_path]
 
 def expected_next_step(post_sample_traces, name):
@@ -228,7 +228,7 @@ def expected_int_future_step(post_sample_traces, name="int_plan"):
 	t = post_sample_traces[0]["t"]
 	next_steps = []
 	for sample_i, trace in enumerate(post_sample_traces):
-		t_fut = min(t+5, len(trace[name]))
+		t_fut = min(t+12, len(trace[name])-1)
 		next_steps.append(trace[name][t_fut])
 	expected_step = list(np.mean(next_steps, axis=0))
 	return expected_step
