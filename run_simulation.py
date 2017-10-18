@@ -166,7 +166,7 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 				ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'grey', alpha=0.6, linestyle="-")
 				if i+1 == t:
 					break		
-			ax.scatter( path[t+6][0] * scale, path[t+5][1]  * scale, color="magenta", s = 40, marker="x",linewidths=1) #Runner (t+1)
+			ax.scatter( path[min(t+12, len(path)-1)][0] * scale, path[min(t+12, len(path)-1)][1]  * scale, color="magenta", s = 40, marker="x",linewidths=1) #Runner (t+1)
 
 			
 			#ax.scatter( path[0][0] * scale, path[0][1] * scale, color = "red")
@@ -222,8 +222,94 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 
 	if plot_name is None:
 		plot_name = str(int(time.time()))+".eps"
-	fig.savefig("./plots/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+	fig.savefig("./plots/smart_C_vs_naive_R/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
 	#plt.show()
+
+# def save_chaser_post_traces_naive(chaser_post_sample_traces, plot_name=None, runner_true_locs=None, chaser_true_locs=None, intersections=None):
+# 	fig = plt.figure(1)
+# 	fig.clf()
+# 	ax = fig.add_subplot(1, 1, 1)
+# 	scale = 1
+
+# 	# plot map
+# 	x1,y1,x2,y2 = polygons_to_segments( load_polygons( "./paths.txt" ) )
+# 	for i in xrange(x1.shape[0]):
+# 		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black' )
+
+# 	# show last isovist
+# 	if not intersections is None:
+# 		if not intersections.shape[0] == 0:
+# 			patches = [ Polygon(intersections, True)]
+# 			p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.4)
+# 			colors = 100*np.random.rand(len(patches))
+# 			p.set_array(np.array(colors))
+# 			ax.add_collection(p)
+
+# 	#plot true enforcer's movements
+# 	path = chaser_true_locs
+# 	for i in range( 0, len(path)):
+# 		ax.scatter( path[i][0] * scale, path[i][1]  * scale, color="black", s = 4)
+
+
+# 	enf_true_next_x = path[len(path)-1][0]
+# 	enf_true_next_y = path[len(path)-1][1]
+
+# 	for sample_i, trace in enumerate(chaser_post_sample_traces):
+# 		# get time
+# 		t = trace["t"]
+# 		# plot enf_plan
+# 		path = trace["enf_plan"]
+# 		for i in range( 0, len(path)-1):
+# 			ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'black', linestyle=":", linewidth=2)
+# 		ax.scatter( path[i][0] * scale, path[i][1] * scale, color = "blue", s = 55, marker="v") #Enforcer
+# 		ax.scatter( path[0][0] * scale, path[0][1]  * scale, color="green") #Start location
+	
+
+# 	if not runner_true_locs is None:
+# 		for i in range( 0, len(runner_true_locs)-1):
+# 			ax.plot( [ runner_true_locs[i][0] * scale, runner_true_locs[i+1][0] * scale ], [ runner_true_locs[i][1] * scale, runner_true_locs[i+1][1] * scale], 'orange', linestyle="-.", linewidth=2)
+# 	runnert_last = runner_true_locs[-1]
+# 	ax.scatter( runnert_last[0] * scale, runnert_last[1]  * scale, color="orange", s = 80, marker="D")
+	
+	
+# 	# plot all of the destinations
+# 	# for i in xrange(10):
+# 	# 	ax.scatter( np.atleast_2d( self.locs[i] )[0,0] * scale, np.atleast_2d( self.locs[i] )[0,1]  * scale, color="red")
+
+
+# 	plt.ylim((0,scale))
+# 	chartBox = ax.get_position()
+# 	ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*1, chartBox.height])
+
+# 	enforcer_legend = plt.Line2D([0,0],[0,1], color='blue', marker='v', linestyle='')
+# 	runner_legend = plt.Line2D([0,0],[0,1], color='magenta', marker='D', linestyle='')
+# 	next_step_runner_legend = plt.Line2D([0,0],[0,1], color='magenta', marker='x', linestyle='')
+# 	next_step_enforcer_legend = plt.Line2D([0,0],[0,1], color='blue', marker='x', linestyle='')
+# 	starting_legend = plt.Line2D([0,0],[0,1], color='green', marker='o', linestyle='')
+# 	#runner_exp_next_legend = plt.Line2D([0,0],[0,1], color='darkorchid', marker='o', linestyle='')
+# 	enforcer_plan_legend = plt.Line2D([0,0],[0,1], color='black', linestyle=':', linewidth=2)
+# 	true_runner_legend = plt.Line2D([0,0],[0,1], color='orange', marker='D', linestyle='')
+# 	true_runner_path_legend = plt.Line2D([0,0],[0,1], color='orange', linestyle='-.')
+
+# 	# create legend from custom artist/label lists
+# 	lgd = ax.legend([enforcer_legend,runner_legend,next_step_runner_legend, 
+# 		next_step_enforcer_legend, starting_legend, 
+# 		#runner_exp_next_legend, 
+# 		enforcer_plan_legend, 
+# 		#enforcer_next_legend,
+# 		true_runner_legend, true_runner_path_legend], 
+# 		["C ", "C's Infer R Loc", "C's Infer R's t+n", "C's Infer R's Infer C's Next", 
+# 		"Starting Points", 
+# 		#"C's Infer R's Exp Next", 
+# 		"C's Plan to Inter R", 
+# 		"C's Next", "True R", "True R Path"], 
+# 		loc='upper center', 
+# 		bbox_to_anchor=(1.15, 1), shadow=True, ncol=1, scatterpoints = 1)
+
+# 	if plot_name is None:
+# 		plot_name = str(int(time.time()))+".eps"
+# 	fig.savefig("./plots/smart_C_vs_naive_R/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+# 	#plt.show()
 
 def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	# unpack 
@@ -234,18 +320,22 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	chaser_model = create_chaser_model(seg_map=seg_map, locs=locs, isovist=isovist)
 	# get evenly spead out starts and goal
 
-	int_start = randint(0, len(locs)-1)
-	int_goal = randint(0, len(locs)-1)
-	while(dist(locs[int_start], locs[int_goal]) <= 0.5):
-		int_goal = randint(0, len(locs)-1)
+	int_start = 0
+	int_goal = 8
+
+	#chas_start = 1
+
+	# int_start = randint(0, len(locs)-1)
+	# int_goal = randint(0, len(locs)-1)
+	# while(dist(locs[int_start], locs[int_goal]) <= 0.5):
+	# 	int_goal = randint(0, len(locs)-1)
 	chas_start = randint(0, len(locs)-1)
 	while(dist(locs[int_start], locs[chas_start]) <= 0.5):
 		chas_start = randint(0, len(locs)-1)
 
-	# int_start = 0
-	# int_goal = 8
+	
 
-	# chas_start = 1
+	
 
 	runner_start_i = int_start
 	runner_start = locs[runner_start_i]
@@ -268,9 +358,9 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	# [0.27483145522430752, 0.19712858623572641], [0.25854686086588807, 0.23830235506087813], 
 	# [0.25097278902994408, 0.28619750551848688], [0.24540487293466112, 0.31648310191196649], 
 	# [0.19679616003865907, 0.30477015904546001], [0.16866150321818352, 0.32844002322014876], 
-	# [0.15786536899041551, 0.37717509770481417], [0.14948852463283413, 0.42646838810633692], 
+	# [0.15786536899041551, 0.37717509770481417], [0.14948852463283413, 0.44046838810633692], 
 	# [0.14111168027525278, 0.47576167850785966], [0.13273483591767141, 0.52505496890938252], 
-	# [0.12435799156009002, 0.57434825931090527], [0.11598114720250866, 0.62364154971242802],
+	# [0.12435799156009002, 0.56434825931090527], [0.11598114720250866, 0.62364154971242802],
 	# [0.13916939803284978, 0.66269402652378151], [0.15039748869499225, 0.70969377654572163], 
 	# [0.15619668605039488, 0.75935633095075694], [0.16199588340579754, 0.80901888535579236], 
 	# [0.16779508076120014, 0.85868143976082756], [0.20837094819244148, 0.87335725908849149], 
@@ -350,7 +440,7 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 		# check to see if the runner was detected
 		runner_detected = False
 		# only if he is close
-		if dist(enf_next_step, runner_true_loc) <= .4:
+		if dist(enf_next_step, runner_true_loc) <= .6:
 			# add a bit of hearing by facing the chaser towards the runner
 			fv = direction(scale_up(runner_true_loc), scale_up(enf_next_step))
 			# check if runner can be detected
@@ -417,18 +507,22 @@ if __name__ == '__main__':
 	dets =[]
 	simulation_Q_history = []
 	# TODO: for x simulations
-	for x in xrange(3):
+	runner_intercepted_cnt = 0
+	for x in xrange(50):
 		sim_id = str(int(time.time()))
 		detection, Q_history = run_simulation(sim_id, locs, seg_map, isovist, polys, epolys)
 		dets.append(detection)
+		if detection:
+			runner_intercepted_cnt+=1
 		simulation_Q_history.append(Q_history)
 		cPickle.dump( Q_history, open("./simulations/"+sim_id+"sim-"+str(x)+".cp","w") )
 		#dill.dumps(Q_history, open("./"+sim_id+"sim-"+str(x)+".cp","w"))
 	cPickle.dump( simulation_Q_history, open("./simulations/"+sim_id+"sim-all.cp","w") )
-	print simulation_Q_history
+	#print simulation_Q_history
 	#dill.dumps( simulation_Q_history, open("./"+sim_id+"-all.cp","w") )
 
 	print dets 
+	print runner_intercepted_cnt
 
 
 
