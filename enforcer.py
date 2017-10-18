@@ -26,6 +26,10 @@ class Chaser(object):
 		# initialize model
 		self.runner_model = create_runner_model(seg_map=seg_map, locs=locs, isovist=isovist)
 		self.polys, self.epolys = load_segs()
+
+	def run(self, Q):
+		self.run_naive(Q)
+		#self.run_smart(Q)
 	
 	#run_naive
 	def run_naive(self, Q):
@@ -68,7 +72,7 @@ class Chaser(object):
 		runner_detected = Q.flip( p=detected_prob, name="int_detected" )
 
 
-	def run(self, Q):
+	def run_smart(self, Q):
 		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
 		# current location of chaser (at time 't')
