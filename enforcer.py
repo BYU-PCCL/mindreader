@@ -208,7 +208,7 @@ def rand_expected_future_step(post_sample_traces, name):
 	paths = []
 	next_steps = []
 	for sample_i, trace in enumerate(post_sample_traces):
-		t_fut = min(t+7, len(trace[name]))
+		t_fut = min(t+12, len(trace[name]-1))
 		next_steps.append(trace[name][t_fut])
 		paths.append(trace[name])
 	# print "rand_path", rand_path
