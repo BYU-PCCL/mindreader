@@ -29,7 +29,7 @@ class Chaser(object):
 	
 	#run_naive
 	def run_naive(self, Q):
-		t = Q.choice( p=1.0/41*np.ones((1,41)), name="t" )
+		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
 		# current location of chaser (at time 't')
 		curr_loc = [Q.get_obs("enf_x_"+str(t)), Q.get_obs("enf_y_"+str(t))]
@@ -69,7 +69,7 @@ class Chaser(object):
 
 
 	def run(self, Q):
-		t = Q.choice( p=1.0/41*np.ones((1,41)), name="t" )
+		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
 		# current location of chaser (at time 't')
 		curr_loc = [Q.get_obs("enf_x_"+str(t)), Q.get_obs("enf_y_"+str(t))]

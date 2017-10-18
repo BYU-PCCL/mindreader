@@ -24,7 +24,7 @@ class Runner(object):
 		#				simplified enforcer model 	
 		#----------------------------------------------------------
 
-		t = Q.choice( p=1.0/29*np.ones((1,29)), name="t" )
+		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
 		cnt = len(self.locs)
 		enf_start_i = Q.choice( p=1.0/cnt*np.ones((1,cnt)), name="enf_start" )
