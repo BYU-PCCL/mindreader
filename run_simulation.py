@@ -375,7 +375,7 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	Q_history_ts = []
 
 	# begin timer
-	TIME_LIMIT=30
+	TIME_LIMIT=35
 	for t in xrange(TIME_LIMIT):
 
 		# check if the runner has reached its goal 
