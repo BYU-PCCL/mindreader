@@ -294,14 +294,14 @@ def save_chaser_post_traces_naive(chaser_post_sample_traces, plot_name=None, run
 	true_runner_path_legend = plt.Line2D([0,0],[0,1], color='orange', linestyle='-.')
 
 	# create legend from custom artist/label lists
-	lgd = ax.legend([enforcer_legend,
+	lgd = ax.legend([
+		enforcer_legend,
 		enforcer_plan_legend, 
 		true_runner_legend, 
 		true_runner_path_legend,
 		starting_legend, ], 
 		["C ", 
-		"C's Plan to Inter R",
-		"C's Next",  
+		"C's Plan to Inter R", 
 		"R", 
 		"R's Path",
 		"Starting Points"], 
