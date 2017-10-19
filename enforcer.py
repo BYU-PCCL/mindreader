@@ -28,8 +28,8 @@ class Chaser(object):
 		self.polys, self.epolys = load_segs()
 
 	def run(self, Q):
-		self.run_naive(Q)
-		#self.run_smart(Q)
+		#self.run_naive(Q)
+		self.run_smart(Q)
 	
 	#run_naive
 	def run_naive(self, Q):

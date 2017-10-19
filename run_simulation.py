@@ -8,6 +8,8 @@ from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import cPickle
 
+naive_runner = True
+naive_chaser = False
 
 def example_conditions(trace):
 	t = 9
@@ -88,7 +90,8 @@ def test_chaser():
 	save_chaser_post_traces(post_sample_traces)
 
 
-def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_true_locs=None, chaser_true_locs=None, intersections=None):
+def save_chaser_post_traces_nested(chaser_post_sample_traces, plot_name=None, 
+	runner_true_locs=None, chaser_true_locs=None, intersections=None, exp_enf_path=None):
 	fig = plt.figure(1)
 	fig.clf()
 	ax = fig.add_subplot(1, 1, 1)
@@ -222,7 +225,11 @@ def save_chaser_post_traces(chaser_post_sample_traces, plot_name=None, runner_tr
 
 	if plot_name is None:
 		plot_name = str(int(time.time()))+".eps"
-	fig.savefig("./plots/smart_C_vs_smart_R/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+	if naive_runner:
+		fig.savefig("./plots/smart_C_vs_naive_R/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+	else:
+		fig.savefig("./plots/smart_C_vs_smart_R/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+	
 	#plt.show()
 
 def save_chaser_post_traces_naive(chaser_post_sample_traces, plot_name=None, runner_true_locs=None, 
@@ -303,7 +310,11 @@ def save_chaser_post_traces_naive(chaser_post_sample_traces, plot_name=None, run
 
 	if plot_name is None:
 		plot_name = str(int(time.time()))+".eps"
-	fig.savefig("./plots/naive_C_vs_naive_R/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+	if naive_runner:
+		fig.savefig("./plots/naive_C_vs_naive_R/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+	else:
+		fig.savefig("./plots/naive_C_vs_smart_R/"+plot_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
 	#plt.show()
 
 def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
@@ -345,25 +356,29 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 	#TEMP FOR TESTING (NAIVE RUNNER)
 	runner_path = planner.run_rrt_opt( np.atleast_2d(runner_start), 
 		np.atleast_2d(runner_goal), rx1,ry1,rx2,ry2, slow=True)
-	# XXX can comment out smart runner
-	# runner_path = [[0.10000000000000001, 0.099999999999999978], [0.14370786380607686, 0.12428214655893158], 
-	# [0.18741572761215378, 0.14856429311786318], [0.23112359141823066, 0.17284643967679481], 
-	# [0.27483145522430752, 0.19712858623572641], [0.25854686086588807, 0.23830235506087813], 
-	# [0.25097278902994408, 0.28619750551848688], [0.24540487293466112, 0.31648310191196649], 
-	# [0.19679616003865907, 0.30477015904546001], [0.16866150321818352, 0.32844002322014876], 
-	# [0.15786536899041551, 0.37717509770481417], [0.14948852463283413, 0.44046838810633692], 
-	# [0.14111168027525278, 0.47576167850785966], [0.13273483591767141, 0.52505496890938252], 
-	# [0.12435799156009002, 0.56434825931090527], [0.11598114720250866, 0.62364154971242802],
-	# [0.13916939803284978, 0.66269402652378151], [0.15039748869499225, 0.70969377654572163], 
-	# [0.15619668605039488, 0.75935633095075694], [0.16199588340579754, 0.80901888535579236], 
-	# [0.16779508076120014, 0.85868143976082756], [0.20837094819244148, 0.87335725908849149], 
-	# [0.25828353694770523, 0.87588922948695491], [0.30825277792753181, 0.87764278470422896], 
-	# [0.35822201890735811, 0.87939633992150279], [0.40819125988718469, 0.88114989513877684], 
-	# [0.45816050086701121, 0.88290345035605078], [0.48130593126207499, 0.91889699806900549], 
-	# [0.53128113014992562, 0.92047163965355017], [0.58125632903777602, 0.92204628123809473]]
-	# for i in xrange(10):
-	# 	runner_path.append(runner_path[len(runner_path)-1])
-	#--end of smart runner
+
+	if not naive_runner:
+		# XXX smart runner
+		runner_path = [[0.10000000000000001, 0.099999999999999978], [0.14370786380607686, 0.12428214655893158], 
+		[0.18741572761215378, 0.14856429311786318], [0.23112359141823066, 0.17284643967679481], 
+		[0.27483145522430752, 0.19712858623572641], [0.25854686086588807, 0.23830235506087813], 
+		[0.25097278902994408, 0.28619750551848688], [0.24540487293466112, 0.31648310191196649], 
+		[0.19679616003865907, 0.30477015904546001], [0.16866150321818352, 0.32844002322014876], 
+		[0.15786536899041551, 0.37717509770481417], [0.14948852463283413, 0.44046838810633692], 
+		[0.14111168027525278, 0.47576167850785966], [0.13273483591767141, 0.52505496890938252], 
+		[0.12435799156009002, 0.56434825931090527], [0.11598114720250866, 0.62364154971242802],
+		[0.13916939803284978, 0.66269402652378151], [0.15039748869499225, 0.70969377654572163], 
+		[0.15619668605039488, 0.75935633095075694], [0.16199588340579754, 0.80901888535579236], 
+		[0.16779508076120014, 0.85868143976082756], [0.20837094819244148, 0.87335725908849149], 
+		[0.25828353694770523, 0.87588922948695491], [0.30825277792753181, 0.87764278470422896], 
+		[0.35822201890735811, 0.87939633992150279], [0.40819125988718469, 0.88114989513877684], 
+		[0.45816050086701121, 0.88290345035605078], [0.48130593126207499, 0.91889699806900549], 
+		[0.53128113014992562, 0.92047163965355017], [0.58125632903777602, 0.92204628123809473]]
+		for i in xrange(10):
+			runner_path.append(runner_path[len(runner_path)-1])
+		runner_goal = runner_path[-1]
+		#--end of smart runner
+
 
 	assert len(runner_path) == 40
 	runner_locs = runner_path
@@ -379,7 +394,7 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 		try:
 			if runner_locs[t+1] == runner_goal:
 				print "Failed: Runner Reached Goal"
-				return False
+				return False, Q_history_ts
 				break
 		except:
 			print "FAILED"
@@ -407,7 +422,11 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 				Q.cache["enf_intersections_t_"+str(pre_t)] = intersection_cache[pre_t]
 
 		# run inference
-		post_sample_traces = run_inference(Q, post_samples=3, samples=6)
+		if naive_chaser:
+			post_sample_traces = run_inference(Q, post_samples=3, samples=6)
+		else:
+			post_sample_traces = run_inference(Q, post_samples=1, samples=3) # nested inference
+
 		exp_next_step, exp_enf_path = rand_expected_future_step(post_sample_traces, "enf_plan")
 
 		#XXX not working
@@ -438,7 +457,7 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 		# check to see if the runner was detected
 		runner_detected = False
 		# only if he is close
-		if dist(enf_next_step, runner_true_loc) <= .6:
+		if dist(enf_next_step, runner_true_loc) <= .4:
 			# add a bit of hearing by facing the chaser towards the runner
 			fv = direction(scale_up(runner_true_loc), scale_up(enf_next_step))
 			# check if runner can be detected
@@ -462,8 +481,12 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 		if runner_detected:
 			print "Success: Runner Detected Before Goal"
 			plot_name = str(sim_id)+"_t-"+str(t)+"_s-"+"T"+".eps"
-			save_chaser_post_traces_naive(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, 
-				chaser_true_locs=chaser_locs, intersections=inters, exp_enf_path=exp_enf_path)
+			if naive_chaser:
+				save_chaser_post_traces_naive(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, 
+					chaser_true_locs=chaser_locs, intersections=inters, exp_enf_path=exp_enf_path)
+			else:
+				save_chaser_post_traces_nested(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, 
+					chaser_true_locs=chaser_locs, intersections=inters, exp_enf_path=exp_enf_path)
 			Q.keep("real_world_detection",True)
 			Q_history.append(Q)
 			Q_history_ts.append(Q.trace)
@@ -475,8 +498,12 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 			Q_history_ts.append(Q.trace)
 			print "searching..."
 		
-		save_chaser_post_traces_naive(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, 
-			chaser_true_locs=chaser_locs, intersections=inters, exp_enf_path=exp_enf_path)
+		if naive_chaser:
+			save_chaser_post_traces_naive(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, 
+				chaser_true_locs=chaser_locs, intersections=inters, exp_enf_path=exp_enf_path)
+		else:
+			save_chaser_post_traces_nested(post_sample_traces, plot_name=plot_name, runner_true_locs=runner_true_locs, 
+				chaser_true_locs=chaser_locs, intersections=inters, exp_enf_path=exp_enf_path)
 	
 	print "Failed: Runner Reached Goal"
 	return False, Q_history_ts
@@ -508,7 +535,7 @@ if __name__ == '__main__':
 	simulation_Q_history = []
 	# TODO: for x simulations
 	runner_intercepted_cnt = 0
-	for x in xrange(10):
+	for x in xrange(5):
 		sim_id = str(int(time.time()))
 		detection, Q_history = run_simulation(sim_id, locs, seg_map, isovist, polys, epolys)
 		dets.append(detection)
