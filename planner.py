@@ -125,7 +125,7 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, slow=False):
 			#  		return None # expressing that we are probably inside a building now
 			# else:
 			# 	break
-	iters = 80
+	iters = 100
 	std = 1.0/500
 	opt_path = optimize_path(x1, y1, x2, y2, path, iters, std)
 	sim_path = simplify_path(x1, y1, x2, y2, opt_path)
@@ -133,9 +133,25 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, slow=False):
 
 	times = np.arange(0, 800, 20) #600 seconds (10 minute) (5 mintues) 30 20-sec intervals
 	# change ^ to be 800 seconds.. 40 20-sec intervals. Making the paths longer...
-	speed = 1.75/600
+	
+	slow = True
+	slower = False
+	fastest = False
+	normal = False
+
+	#speed = 1.75/600
+
 	if slow:
 		speed = 1.3/600
+
+	if slower:
+		speed = 0.9/600
+
+	if normal:
+		speed = 1.75/600
+
+	if fastest:
+		speed = 3.0/600
 
 	walking_path = walk_path(sim_path, speed, times)
 	return walking_path

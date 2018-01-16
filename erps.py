@@ -158,7 +158,7 @@ class flip_erp:
     @staticmethod
     def score( X, sz=None, p=0.5 ):
         epsilon = 1e-20
-        return np.sum( X * np.log(p+epsilon) - (1.0-X)*np.log(1.0-p+epsilon) )
+        return np.sum( X * np.log(p+epsilon) + (1.0-X)*np.log(1.0-p+epsilon) )
 
     @staticmethod
     def new_var_params( sz=None, p=0.5 ):
