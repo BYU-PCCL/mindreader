@@ -67,7 +67,7 @@ class BasicRunner(object):
 
 
 class BasicRunnerPOM(object):
-	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], mode="collab"):
 		# field of view calculator
 		self.isovist = isovist
 		# possible start/goal locations
@@ -76,6 +76,7 @@ class BasicRunnerPOM(object):
 		# map
 		self.seg_map = seg_map
 		rx1,ry1,rx2,ry2 = seg_map
+		self.mode = mode # advers for adversarial , collab for collaborative
 
 
 	# run the model inside this function
@@ -128,39 +129,67 @@ class BasicRunnerPOM(object):
 
 		my_loc = my_noisy_plan[t]
 
-		#---------------- need to add RV of detection for each time step ----------
-		t_detected = []
-		PATH_LIMIT = 40
-		for i in xrange(0, PATH_LIMIT):
-			cur_loc = scale_up(my_noisy_plan[i])
-			intersections = None
-			detection_prob = 0.001
-			# face the runner if within certain radius
-			if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
-				fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
-				intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
-			
-				# does the agent see other at time 't'
+		#-------------------------- detections ---------------------
+		if self.mode == "collab":
+			t_detected = []
+			PATH_LIMIT = 30
+			for i in xrange(0, PATH_LIMIT):
+				cur_loc = scale_up(my_noisy_plan[i])
+				intersections = None
+				detection_prob = 0.001
+				# face the runner if within certain radius
+				if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
+					fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
+					intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
+				
+					# does the agent see other at time 't'
+					other_loc = scale_up(other_noisy_plan[i])
+					will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
+					if will_other_be_seen:
+						detection_prob = 0.999
+						t_detected.append(i)
+
+				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+				
+				Q.keep("intersections-t-"+str(i), intersections)
+
+			same_goal = 0
+			if goal_i == o_goal_i:
+				same_goal = 1
+			same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
+
+			runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) 
+
+			Q.keep("t_detected", t_detected)
+			Q.keep("my_plan", my_noisy_plan)
+			Q.keep("other_plan", other_noisy_plan)
+
+		if self.mode == "advers":
+			t_detected = []
+			PATH_LIMIT = 30
+			for i in xrange(0, PATH_LIMIT):
 				other_loc = scale_up(other_noisy_plan[i])
-				will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
-				if will_other_be_seen:
-					detection_prob = 0.999
-					t_detected.append(i)
+				intersections = None
+				detection_prob = 0.001
+				# face the runner if within certain radius
+				if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
+					fv = direction(scale_up(my_noisy_plan[i]), other_loc)
+					intersections = self.isovist.GetIsovistIntersections(other_loc, fv)
+				
+					# does the chaser see other at time 'i'
+					curr_loc = scale_up(my_noisy_plan[i])
+					will_I_be_seen = self.isovist.FindIntruderAtPoint( curr_loc, intersections )
+					if will_I_be_seen:
+						detection_prob = 0.999
+						t_detected.append(i)
 
-			future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
-			
-			Q.keep("intersections-t-"+str(i), intersections)
+				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+				
+				Q.keep("intersections-t-"+str(i), intersections)
 
-		same_goal = 0
-		if goal_i == o_goal_i:
-			same_goal = 1
-		same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
-
-		runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) 
-
-		Q.keep("t_detected", t_detected)
-		Q.keep("my_plan", my_noisy_plan)
-		Q.keep("other_plan", other_noisy_plan)
+			Q.keep("t_detected", t_detected)
+			Q.keep("my_plan", my_noisy_plan)
+			Q.keep("other_plan", other_noisy_plan)
 
 
 	#post_sample_traces = run_inference(q, post_samples=6, samples=5)
@@ -172,7 +201,7 @@ class BasicRunnerPOM(object):
 		return post_traces
 
 class TOMRunnerPOM(object):
-	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1, model="collab"):
 		# field of view calculator
 		self.isovist = isovist
 		# possible start/goal locations
@@ -184,11 +213,11 @@ class TOMRunnerPOM(object):
 		self.nested_model = nested_model
 		self.PS = ps
 		self.SP = sp
+		self.mode = mode # advers for adversarial , collab for collaborative
 
 	# run the model inside this function
 	def run(self, Q):
 		self.run_tom_partial(Q)
-
 
 	def run_tom_partial(self, Q, path_noise=0.003):
 		rx1,ry1,rx2,ry2 = self.seg_map
@@ -215,7 +244,11 @@ class TOMRunnerPOM(object):
 		my_loc = my_noisy_plan[t]
 
 		#---------------- do inference --------------------------------------------
-		post_sample_traces, other_inferred_goal = self.collaborative_nested_inference(Q)
+		if self.mode == "collab":
+			post_sample_traces, other_inferred_goal = self.collaborative_nested_inference(Q)
+		if self.mode == "advers":
+			post_sample_traces, other_inferred_goal = self.adversarial_nested_inference(Q)
+
 		other_noisy_plan = None
 		other_inferred_trace = None
 		for trace in post_sample_traces:
@@ -269,13 +302,40 @@ class TOMRunnerPOM(object):
 		t = Q.fetch("t")
 		q = ProgramTrace(self.nested_model)
 		q.condition("other_run_start", Q.fetch("init_run_start"))
-		q.condition("t", Q.fetch("t")) 
+		q.condition("t", t) 
 		q.condition("run_start", Q.get_obs("other_run_start"))
 		q.condition("same_goal", True)
 
 		# Assumes that if Agent A detects Agent B, then Agent B detects Agent A
 		for i in xrange(24):
 			q.condition("detected_t_"+str(i), Q.get_obs("detected_t_"+str(i)))
+
+			#condition on observations from other agent of me
+			if (Q.get_obs("detected_t_"+str(i)) == True):
+				if (i == (t-1)):
+					q.condition("run_x_"+ str(i), Q.get_obs("other_x_"+str(i)))
+					q.condition("run_y_"+ str(i), Q.get_obs("other_y_"+str(i)))
+
+		prev_t =(t-1)
+		q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(prev_t)))
+		q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(prev_t)))
+
+		print q.cond_data_db
+		trace =  self.get_trace_for_most_probable_goal_location(q)
+
+		return trace
+
+	#adversarial
+	def adversarial_nested_inference(self, Q):
+		t = Q.fetch("t")
+		q = ProgramTrace(self.nested_model)
+		q.condition("other_run_start", Q.fetch("init_run_start"))
+		q.condition("t", Q.fetch("t")) 
+		q.condition("run_start", Q.get_obs("other_run_start"))
+
+		for i in xrange(30):
+			# the runner wants all detections to be False
+			q.condition("detected_t_"+str(i), False)
 
 			#condition on observations from other agent of me
 			if (Q.get_obs("detected_t_"+str(i)) == True):

@@ -1096,6 +1096,7 @@ def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=
 		if (i==(t-1)):
 			Q.condition("init_run_x_"+str(i), my_plan[i][0])
 			Q.condition("init_run_y_"+str(i), my_plan[i][1])
+	# condition future detections to be True
 	for i in xrange(t, 26):
 		Q.condition("detected_t_"+str(i), True)
 		Q.set_obs("detected_t_"+str(i), True)
@@ -1218,6 +1219,9 @@ if __name__ == '__main__':
 	plot(poly_map, plot_name="large_map_blank.eps", locs=locs)
 	
 
+	###################################################################################
+	#	collaborative
+	###################################################################################
 
 	#---------------- Basic Runner model -------------------------------
 	#runner_model = BasicRunner(seg_map=poly_map, locs=locs, isovist=isovist)
@@ -1261,18 +1265,28 @@ if __name__ == '__main__':
 	# simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=3, SP=32)
 
 	#-----------run TOM partially observable model ------
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	# tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
+	# 	nested_model=runner_model, ps=5, sp=32)
+	# #-- run single conditioned sample ---//
+	# run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=5, SP=32)
+
+	#simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
+	#	directory="tom_find_eachother", PS=5, SP=32)
+
+
+	###################################################################################
+	#	adversarial
+	###################################################################################
+
+
+
+
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
 	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-		nested_model=runner_model, ps=5, sp=32)
+		nested_model=runner_model, ps=5, sp=32, mode="advers")
 	#-- run single conditioned sample ---//
-	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=5, SP=32)
-
-	simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
-		directory="tom_find_eachother", PS=5, SP=32)
-
-
-
-
+	run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=5, SP=32)
 
 
 
