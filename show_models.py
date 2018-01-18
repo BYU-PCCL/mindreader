@@ -54,11 +54,10 @@ def plot(poly_map, plot_name=None, locs=None):
 	#plt.show()
 	fig.savefig(plot_name, bbox_inches='tight')
 
-def setup_plot(poly_map, locs=None):
+def setup_plot(poly_map, locs=None, scale=1):
 	fig = plt.figure(1)
 	fig.clf()
 	ax = fig.add_subplot(1, 1, 1)
-	scale = 1
 
 	# plot map
 	x1,y1,x2,y2 = poly_map
@@ -623,7 +622,7 @@ def multiple_paths_to_heatmap( set_of_rrts, cnt=300, ss=100 ):
 		heatmap[:,:,t] = make_heatmap( pts, ss=ss )
 	return heatmap
 
-def run_inference_advers_PO(locs, poly_map, isovist, mode="advers"):
+def run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
 	Q.condition("run_start", 2)
@@ -638,18 +637,17 @@ def run_inference_advers_PO(locs, poly_map, isovist, mode="advers"):
 	for i in xrange(t, 24):
 		Q.condition("detected_t_"+str(i), False)
 
-	PS = 5
-	SP = 1
 	#run_inference_MH
 	post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
 
-	# fig, ax = setup_plot(poly_map, locs)
 
 	paths = []
+	other_paths = []
 	for trace in post_sample_traces:
 		path = trace["my_plan"]
+		other_path = trace["other_plan"]
 
-		#copy path
+		# remove hovering points on path
 		no_hover_path = []
 		for pt in path:
 			if abs(pt[0] - path[-2][0]) > .01:
@@ -658,39 +656,53 @@ def run_inference_advers_PO(locs, poly_map, isovist, mode="advers"):
 		no_hover_path.append(path[-2])
 		paths.append(no_hover_path)
 
-	# 	t = trace["t"]
-	# 	for i in range(0, 39):
-	# 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-	# 			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
-	# 	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
-
-	# close_plot(fig, ax, plot_name="PO_forward_runs/unknown_inference/IS_advers-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps")
-
-	
+		# remove hovering points on other path
+		no_hover_other_path = []
+		for pt in other_path:
+			if abs(pt[0] - other_path[-2][0]) > .01:
+				if abs(pt[1] - other_path[-2][1]) > 0.01:
+					no_hover_other_path.append(pt)
+		no_hover_other_path.append(other_path[-2])
+		other_paths.append(no_hover_other_path)
 
 	results = []
 	results.append( path_to_heatmap(paths) )
-
 	tmarg = []
 	for r in results:
 		tmarg.append( np.mean( r, axis=2 ) )
+	fig, ax = setup_plot(poly_map, locs, scale = 500)
+	plt.xticks([])
+	plt.yticks([])
+	
+	#ax.invert_yaxis()
+	cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower')#; plt.show()
+	ax.set_title('Marginal of Runner Paths Avoiding Chaser')
+	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
+	cbar.ax.set_yticklabels(['0', '', ''])
 
-	# fig = plt.figure(1)
-	# fig.clf()
-	# ax = fig.add_subplot(1, 1, 1)
-	scale = 1
+	test_id = int(time.time())
+	plot_name="PO_forward_runs/unknown_inference/IS_advers-"+str(PS)+"-Runner-"+str(SP)+"-"+str(test_id)+".eps"
+	plt.savefig(plot_name, bbox_inches='tight')
 
-	# plot map
-	x1,y1,x2,y2 = poly_map
-	for i in xrange(x1.shape[0]):
-		plt.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black', linewidth=1  )
+	results = []
+	results.append( path_to_heatmap(other_paths) )
+	tmarg = []
+	for r in results:
+		tmarg.append( np.mean( r, axis=2 ) )
+	fig, ax = setup_plot(poly_map, locs, scale = 500)
+	plt.xticks([])
+	plt.yticks([])
+	
+	#ax.invert_yaxis()
+	cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower')#; plt.show()
+	ax.set_title('Marginal of Naive Chaser Paths')
+	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
+	cbar.ax.set_yticklabels(['0', '', ''])
+
+	plot_name="PO_forward_runs/unknown_inference/IS_advers-"+str(PS)+"-Chaser-"+str(SP)+"-"+str(test_id)+".eps"
+	plt.savefig(plot_name, bbox_inches='tight')
 
 
-	plt.imshow( tmarg[0] ); plt.show()
-
-	plot_name="PO_forward_runs/unknown_inference/IS_advers-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps"
-
-	    
 	# ttmarg = np.mean( np.stack( tmarg, axis=2 ), axis=2 )
 
 	# trim_results = [ x[:,:,0:1000] for x in results ]
@@ -1473,7 +1485,14 @@ if __name__ == '__main__':
 	#runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
 	#run_unconditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
 	#run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
-	run_inference_advers_PO(locs, poly_map, isovist, mode="advers")
+	for i in xrange(5):
+		run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=16)
+	for i in xrange(5):
+		run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32)
+	for i in xrange(5):
+		run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=30, SP=16)
+	for i in xrange(5):
+		run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=30, SP=32)
 	# tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
 	# 	nested_model=runner_model, ps=5, sp=32, mode="advers")
 	# #-- run single conditioned sample ---//
