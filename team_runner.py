@@ -223,7 +223,7 @@ class TOMRunnerPOM(object):
 		rx1,ry1,rx2,ry2 = self.seg_map
 		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
-		#------------- model agent's co-runner movements (past and future) --------------
+		#------------- model agent's movements (past and future) --------------
 		start_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="init_run_start" )
 		goal_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="init_run_goal" )
 		start = np.atleast_2d( self.locs[start_i] )
@@ -337,17 +337,13 @@ class TOMRunnerPOM(object):
 			# the runner wants all detections to be False
 			q.condition("detected_t_"+str(i), False)
 
-			#condition on observations from other agent of me
-			if (Q.get_obs("detected_t_"+str(i)) == True):
-				if (i == (t-1)):
-					q.condition("run_x_"+ str(i), Q.get_obs("other_x_"+str(i)))
-					q.condition("run_y_"+ str(i), Q.get_obs("other_y_"+str(i)))
-
-		prev_t =(t-1)
-		q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(prev_t)))
-		q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(prev_t)))
+			# worse case scenario where runner full observes chaser
+			if i < t:
+				q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(i)))
+				q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(i)))
 
 		print q.cond_data_db
+		# need to think about this a bit more - iris - 1.17.2018
 		trace =  self.get_trace_for_most_probable_goal_location(q)
 
 		return trace

@@ -515,8 +515,8 @@ def line_plotting(inferrred_goals, sim_id, code="", directory="time"):
 	ax.set_xlabel('time step')
 	fig.savefig( directory +'/' + sim_id + code + '_infering_goals.eps')
 
-def run_inference_PO(locs, poly_map, isovist):
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+def run_inference_PO(locs, poly_map, isovist, mode="collab"):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
 	Q.condition("run_start", 2)
 	#Q.condition("run_goal", 6)
@@ -589,6 +589,115 @@ def run_inference_PO(locs, poly_map, isovist):
 				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 
 	close_plot(fig, ax, plot_name="PO_forward_runs/unknown_inference/IS_run_and_find-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps")
+
+#-----------------------------------------------------------------------------
+
+def make_gauss( x, y, ss=100 ):
+	X, Y = np.meshgrid( range(500), range(500) )
+	return np.exp( -(1.0/(2.0*ss)) * ( (X.astype('float32')-x)**2.0 + (Y.astype('float32')-y)**2.0 ) )
+
+def make_heatmap( pts, ss=100 ):
+	# pts is a list of 2-tuples - should be between [0,1].  build a simple kde.
+	tmp = np.zeros((500,500))
+	for p in pts:
+		tmp += make_gauss( 500.0*p[0], 500.0*p[1], ss=ss )
+	tmp = tmp / float( len( pts ) )
+	return tmp
+
+def path_to_heatmap( path, ss=100 ):
+	# assumes that path is a list of 2-tuples.  assumes each tuple is in [0,1]
+	cnt = len( path )
+	heatmap = np.zeros(( 500,500,cnt ))
+	for t in range(len(path)):
+		heatmap[:,:,t] = make_heatmap( path[t], ss=ss )
+	return heatmap
+
+def multiple_paths_to_heatmap( set_of_rrts, cnt=300, ss=100 ):
+	# construct a heat map of occupancy probabilities for each time
+	heatmap = np.zeros( (500,500,cnt) )
+	for t in range( heatmap.shape[2] ):
+		pts = []
+		for k in set_of_rrts:
+			if t < len( k ):
+				pts.append( k[t] )
+		heatmap[:,:,t] = make_heatmap( pts, ss=ss )
+	return heatmap
+
+def run_inference_advers_PO(locs, poly_map, isovist, mode="advers"):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", 2)
+	Q.condition("run_goal", 9)
+	Q.condition("other_run_start", 4)
+	Q.condition("other_run_goal", 7)
+	t = 0
+	Q.condition("t", t)
+	
+	for i in xrange(t):
+		Q.condition("detected_t_"+str(i), False)
+	for i in xrange(t, 24):
+		Q.condition("detected_t_"+str(i), False)
+
+	PS = 5
+	SP = 1
+	#run_inference_MH
+	post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
+
+	# fig, ax = setup_plot(poly_map, locs)
+
+	paths = []
+	for trace in post_sample_traces:
+		path = trace["my_plan"]
+
+		#copy path
+		no_hover_path = []
+		for pt in path:
+			if abs(pt[0] - path[-2][0]) > .01:
+				if abs(pt[1] - path[-2][1]) > 0.01:
+					no_hover_path.append(pt)
+		no_hover_path.append(path[-2])
+		paths.append(no_hover_path)
+
+	# 	t = trace["t"]
+	# 	for i in range(0, 39):
+	# 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+	# 			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+	# 	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	# close_plot(fig, ax, plot_name="PO_forward_runs/unknown_inference/IS_advers-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps")
+
+	
+
+	results = []
+	results.append( path_to_heatmap(paths) )
+
+	tmarg = []
+	for r in results:
+		tmarg.append( np.mean( r, axis=2 ) )
+
+	# fig = plt.figure(1)
+	# fig.clf()
+	# ax = fig.add_subplot(1, 1, 1)
+	scale = 1
+
+	# plot map
+	x1,y1,x2,y2 = poly_map
+	for i in xrange(x1.shape[0]):
+		plt.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black', linewidth=1  )
+
+
+	plt.imshow( tmarg[0] ); plt.show()
+
+	plot_name="PO_forward_runs/unknown_inference/IS_advers-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps"
+
+	    
+	# ttmarg = np.mean( np.stack( tmarg, axis=2 ), axis=2 )
+
+	# trim_results = [ x[:,:,0:1000] for x in results ]
+
+	# heatcube = np.stack( trim_results, axis=3 )
+
+	# np.save( './heatcube.npy', heatcube )
 
 
 def get_most_probable_goal_location(Q, poly_map, locs, sim_id, other_true_path, character, 
@@ -916,8 +1025,8 @@ def was_other_detected(agent_loc, other_agent_loc, isovist):
 
 
 
-def run_conditioned_basic_partial_model(locs, poly_map, isovist):
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+def run_conditioned_basic_partial_model(locs, poly_map, isovist, mode="collab"):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode = mode)
 	Q = ProgramTrace(runner_model)
 	Q.condition("run_start", 2)
 	#Q.condition("run_goal", 6)
@@ -997,8 +1106,87 @@ def run_conditioned_basic_partial_model(locs, poly_map, isovist):
 	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/single_samples/run_and_avoid-"+str(int(time.time()))+".eps")
 	print "score:", score
 
-def run_unconditioned_basic_partial_model(locs, poly_map, isovist):
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+def run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers"):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode = mode)
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", 2)
+	Q.condition("run_goal", 9)
+	Q.condition("other_run_start", 4)
+	Q.condition("other_run_goal", 7)
+
+	t = 1
+	Q.condition("t", t)
+	
+	for i in xrange(t):
+		Q.condition("detected_t_"+str(i), False)
+	for i in xrange(t, 24):
+		Q.condition("detected_t_"+str(i), False)
+
+	score, trace = Q.run_model()
+
+	fig, ax = setup_plot(poly_map, locs, )
+
+	for i in trace["t_detected"]:
+		intersections = trace["intersections-t-"+str(i)]
+		# show last isovist
+		if not intersections is None:
+			intersections = np.asarray(intersections)
+			intersections /= 500.0
+			if not intersections.shape[0] == 0:
+				patches = [ Polygon(intersections, True)]
+				p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.2)
+				colors = 100*np.random.rand(len(patches))
+				p.set_array(np.array(colors))
+				ax.add_collection(p)
+
+
+
+	path = trace["my_plan"]
+	t = trace["t"]
+	for i in range(0, t):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+	for i in range(t, 39):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'grey', linestyle=":", linewidth=1)
+		
+
+
+	# mark the runner at time t on its plan
+	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	path = trace["other_plan"]
+
+	for i in range(0, t):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'blue', linestyle="--", linewidth=1, label="Other's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+		# else:
+		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+	# mark the runner at time t on its plan
+	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
+
+	for i in range(t, 39):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'grey', linestyle="--", linewidth=1, label="Other's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	plt.figtext(0.92, 0.85, "Values", horizontalalignment='left', weight="bold") 
+	plt.figtext(0.92, 0.80, "A Start: " +str(trace["run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.75, "A Goal: " +str(trace["run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.70, "B Start: " +str(trace["other_run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.65, "B Goal: " +str(trace["other_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.60, "time step: " +str(trace["t"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.55, "A detected B count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
+	
+	plt.figtext(0.5, 0.01, "Log Score: " +str(score), horizontalalignment='center') 
+	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/single_samples/advers-"+str(int(time.time()))+".eps")
+	print "score:", score
+
+def run_unconditioned_basic_partial_model(locs, poly_map, isovist, mode="collab"):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
 
 	score, trace = Q.run_model()
@@ -1059,7 +1247,7 @@ def run_unconditioned_basic_partial_model(locs, poly_map, isovist):
 	plt.figtext(0.92, 0.65, "B Goal: " +str(trace["other_run_goal"]), horizontalalignment='left') 
 	plt.figtext(0.92, 0.60, "time step: " +str(trace["t"]), horizontalalignment='left') 
 	plt.figtext(0.92, 0.55, "A detected B count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
-	close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/run_and_find-"+str(int(time.time()))+".eps")
+	close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/advers-"+str(int(time.time()))+".eps")
 
 	print "time:", trace["t"]
 	# print "other_run_start:", trace["other_run_start"]
@@ -1216,7 +1404,7 @@ if __name__ == '__main__':
 		isovist = i.Isovist( load_isovist_map() )
 
 	#plots the map and the locations if said so in the function
-	plot(poly_map, plot_name="large_map_blank.eps", locs=locs)
+	#plot(poly_map, plot_name="large_map_blank.eps", locs=locs)
 	
 
 	###################################################################################
@@ -1282,11 +1470,14 @@ if __name__ == '__main__':
 
 
 
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
-	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-		nested_model=runner_model, ps=5, sp=32, mode="advers")
-	#-- run single conditioned sample ---//
-	run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=5, SP=32)
+	#runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
+	#run_unconditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
+	#run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
+	run_inference_advers_PO(locs, poly_map, isovist, mode="advers")
+	# tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
+	# 	nested_model=runner_model, ps=5, sp=32, mode="advers")
+	# #-- run single conditioned sample ---//
+	# run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=5, SP=32)
 
 
 
