@@ -177,3 +177,40 @@ class flip_erp:
             return val
         else:
             return val
+
+
+class logflip_erp:
+    @staticmethod
+    def diffparms():
+        return ["lp"]
+
+    @staticmethod
+    def sample( sz=None, lp=-0.69 ):
+        lp = a2d( lp )
+        if sz == None:
+            sz = lp.shape
+        #print "lp=", lp
+        #print "sz=", sz
+        return np.random.rand( *sz ) < np.exp( lp )
+
+    @staticmethod
+    def score( X, sz=None, lp=-0.69 ):
+        epsilon = 1e-20
+        return np.sum( X * lp + (1.0-X)*np.log( 1.0 - np.exp(lp)) )
+
+    @staticmethod
+    def new_var_params( sz=None, lp=-0.69 ):
+        lp = a2d( lp )
+        if sz == None:
+            sz = lp.shape
+        return { "sz": sz,
+                 "lp": -0.69*np.ones( sz ) }
+
+    @staticmethod
+    def project_param( name, val ):
+        if name == 'lp':
+            val = a2d( val )
+            val[val>0.0] = 0.0
+            return val
+        else:
+            return val
