@@ -156,7 +156,9 @@ class BasicRunnerPOM(object):
 			same_goal = 0
 			if goal_i == o_goal_i:
 				same_goal = 1
-			same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
+
+			tightness = .9999999999999999999999999999999999999999
+			same_goal_prob = tightness*same_goal + (1-tightness)*(1-same_goal)
 
 			runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) 
 

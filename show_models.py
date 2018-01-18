@@ -1603,6 +1603,9 @@ if __name__ == '__main__':
 	# run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=5, SP=32)
 
 
+	
+
+
 
 
 

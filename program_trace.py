@@ -21,6 +21,7 @@ class ProgramTrace(object):
 		self.flip = self.make_erp( flip_erp )
 		self.rand = self.make_erp( rand_erp )
 		self.beta = self.make_erp( beta_erp )
+		self.lflip = self.make_erp( logflip_erp )
 
 	def set_obs(self, name=None, value=None):
 		self.obs[name] = value
