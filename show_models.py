@@ -622,23 +622,35 @@ def multiple_paths_to_heatmap( set_of_rrts, cnt=300, ss=100 ):
 		heatmap[:,:,t] = make_heatmap( pts, ss=ss )
 	return heatmap
 
-def run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32):
+def run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS"):
+	smart_runner_path = [[0.76100000000000001, 0.33499999999999996], [0.79693306170966127, 0.31681719196329022], [0.80581636819548708, 0.32303925000961448], [0.82157666594697576, 0.35507871352210496], [0.84631098278986638, 0.38526295316268699], [0.85605836078664443, 0.42695933001031711], [0.85377945121472631, 0.47230018209458574], [0.85230055319010789, 0.50723326947937353], [0.84447424458178699, 0.55245234576568325], [0.84692934402731657, 0.59892793171904146], [0.84462995124525586, 0.64149175920823887], [0.83903436930244579, 0.68303283119596825], [0.83036661086806407, 0.73288779416030592], [0.79182007137000809, 0.7452031892041231], [0.77075904851722576, 0.78242258238023066], [0.75632207621249159, 0.82604988257051348], [0.73804574903129172, 0.86390936444508237], [0.67703633355554294, 0.92443317734841468], [0.63385802899748622, 0.91378880053088074], [0.58905849557792511, 0.91676698474768659], [0.54732582293488341, 0.91278407902095093], [0.50526092944104217, 0.91116753830143915], [0.43991293299067769, 0.89917202745069646]]
+
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
-	Q.condition("run_start", 2)
+
+	# now we are in the perspective of the smart chaser
+	Q.condition("run_start", 3)
 	Q.condition("run_goal", 9)
-	Q.condition("other_run_start", 4)
-	Q.condition("other_run_goal", 7)
+
+	# now other is the smart runner
+	Q.condition("other_run_start", 2)
+	Q.condition("other_run_goal", 9)
 	t = 0
-	Q.condition("t", t)
+	#Q.condition("t", t)
 	
-	for i in xrange(t):
-		Q.condition("detected_t_"+str(i), False)
-	for i in xrange(t, 24):
-		Q.condition("detected_t_"+str(i), False)
+	# for i in xrange(t):
+	# 	Q.condition("detected_t_"+str(i), False)
+	# for i in xrange(t, 24):
+	# 	Q.condition("detected_t_"+str(i), True)
+	# 	if len(smart_runner_path) > i:
+	# 		Q.condition("other_run_x_"+str(i), smart_runner_path[i][0])
+	# 		Q.condition("other_run_y_"+str(i), smart_runner_path[i][1])
 
 	#run_inference_MH
-	post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
+	if inf_type == "IS":
+		post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
+	if inf_type == "MH":
+		post_sample_traces = run_inference_MH(Q, post_samples=PS, samples=SP)
 
 
 	paths = []
@@ -665,6 +677,92 @@ def run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32
 		no_hover_other_path.append(other_path[-2])
 		other_paths.append(no_hover_other_path)
 
+	#print "runner path: ", no_hover_path
+	results = []
+	results.append( path_to_heatmap(paths) )
+	tmarg = []
+	for r in results:
+		tmarg.append( np.mean( r, axis=2 ) )
+	fig, ax = setup_plot(poly_map, locs, scale = 500)
+	plt.xticks([])
+	plt.yticks([])
+	
+	#ax.invert_yaxis()
+	cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower'); 
+	ax.set_title('Chaser')
+	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
+	cbar.ax.set_yticklabels(['0', '', ''])
+
+	test_id = int(time.time())
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(test_id)+"-"+str(PS)+"-Chaser-"+str(SP)+".eps"
+	plt.savefig(plot_name, bbox_inches='tight')
+
+	results = []
+	results.append( path_to_heatmap(other_paths) )
+	tmarg = []
+	for r in results:
+		tmarg.append( np.mean( r, axis=2 ) )
+	fig, ax = setup_plot(poly_map, locs, scale = 500)
+	plt.xticks([])
+	plt.yticks([])
+	
+	#ax.invert_yaxis()
+	cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower');
+	ax.set_title('Runner')
+	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
+	cbar.ax.set_yticklabels(['0', '', ''])
+
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(test_id)+"-"+str(PS)+"-Runner-"+str(SP)+".eps"
+	plt.savefig(plot_name, bbox_inches='tight')
+
+
+def run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS"):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", 2)
+	Q.condition("run_goal", 9)
+	Q.condition("other_run_start", 4)
+	Q.condition("other_run_goal", 7)
+	t = 0
+	Q.condition("t", t)
+	
+	for i in xrange(t):
+		Q.condition("detected_t_"+str(i), False)
+	for i in xrange(t, 24):
+		Q.condition("detected_t_"+str(i), False)
+
+	#run_inference_MH
+	if inf_type == "IS":
+		post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
+	if inf_type == "MH":
+		post_sample_traces = run_inference_MH(Q, post_samples=PS, samples=SP)
+
+
+	paths = []
+	other_paths = []
+	for trace in post_sample_traces:
+		path = trace["my_plan"]
+		other_path = trace["other_plan"]
+
+		# remove hovering points on path
+		no_hover_path = []
+		for pt in path:
+			if abs(pt[0] - path[-2][0]) > .01:
+				if abs(pt[1] - path[-2][1]) > 0.01:
+					no_hover_path.append(pt)
+		no_hover_path.append(path[-2])
+		paths.append(no_hover_path)
+
+		# remove hovering points on other path
+		no_hover_other_path = []
+		for pt in other_path:
+			if abs(pt[0] - other_path[-2][0]) > .01:
+				if abs(pt[1] - other_path[-2][1]) > 0.01:
+					no_hover_other_path.append(pt)
+		no_hover_other_path.append(other_path[-2])
+		other_paths.append(no_hover_other_path)
+
+	#print "runner path: ", no_hover_path
 	results = []
 	results.append( path_to_heatmap(paths) )
 	tmarg = []
@@ -681,7 +779,7 @@ def run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32
 	cbar.ax.set_yticklabels(['0', '', ''])
 
 	test_id = int(time.time())
-	plot_name="PO_forward_runs/unknown_inference/IS_advers-"+str(PS)+"-Runner-"+str(SP)+"-"+str(test_id)+".eps"
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(PS)+"-Runner-"+str(SP)+"-"+str(test_id)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
 
 	results = []
@@ -699,7 +797,7 @@ def run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32
 	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
 	cbar.ax.set_yticklabels(['0', '', ''])
 
-	plot_name="PO_forward_runs/unknown_inference/IS_advers-"+str(PS)+"-Chaser-"+str(SP)+"-"+str(test_id)+".eps"
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(PS)+"-Chaser-"+str(SP)+"-"+str(test_id)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
 
 
@@ -1121,18 +1219,23 @@ def run_conditioned_basic_partial_model(locs, poly_map, isovist, mode="collab"):
 def run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers"):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode = mode)
 	Q = ProgramTrace(runner_model)
-	Q.condition("run_start", 2)
+	Q.condition("run_start", 3)
 	Q.condition("run_goal", 9)
-	Q.condition("other_run_start", 4)
-	Q.condition("other_run_goal", 7)
+	Q.condition("other_run_start", 2)
+	Q.condition("other_run_goal", 9)
 
-	t = 1
+	smart_runner_path = [[0.76100000000000001, 0.33499999999999996], [0.79693306170966127, 0.31681719196329022], [0.80581636819548708, 0.32303925000961448], [0.82157666594697576, 0.35507871352210496], [0.84631098278986638, 0.38526295316268699], [0.85605836078664443, 0.42695933001031711], [0.85377945121472631, 0.47230018209458574], [0.85230055319010789, 0.50723326947937353], [0.84447424458178699, 0.55245234576568325], [0.84692934402731657, 0.59892793171904146], [0.84462995124525586, 0.64149175920823887], [0.83903436930244579, 0.68303283119596825], [0.83036661086806407, 0.73288779416030592], [0.79182007137000809, 0.7452031892041231], [0.77075904851722576, 0.78242258238023066], [0.75632207621249159, 0.82604988257051348], [0.73804574903129172, 0.86390936444508237], [0.67703633355554294, 0.92443317734841468], [0.63385802899748622, 0.91378880053088074], [0.58905849557792511, 0.91676698474768659], [0.54732582293488341, 0.91278407902095093], [0.50526092944104217, 0.91116753830143915], [0.43991293299067769, 0.89917202745069646]]
+
+	t = 0
 	Q.condition("t", t)
 	
 	for i in xrange(t):
 		Q.condition("detected_t_"+str(i), False)
 	for i in xrange(t, 24):
-		Q.condition("detected_t_"+str(i), False)
+		if len(smart_runner_path) > i:
+			Q.condition("other_run_x_"+str(i), smart_runner_path[i][0])
+			Q.condition("other_run_y_"+str(i), smart_runner_path[i][1])
+			Q.condition("detected_t_"+str(i), True)
 
 	score, trace = Q.run_model()
 
@@ -1484,15 +1587,16 @@ if __name__ == '__main__':
 
 	#runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
 	#run_unconditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
-	#run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
-	for i in xrange(5):
-		run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=16)
-	for i in xrange(5):
-		run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32)
-	for i in xrange(5):
-		run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=30, SP=16)
-	for i in xrange(5):
-		run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=30, SP=32)
+	run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
+	# for i in xrange(1):
+	# 	run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=100, SP=16, inf_type="IS")
+	# for i in xrange(1):
+	# 	run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=100, SP=16, inf_type="IS")
+	# for i in xrange(1):
+	# 	run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=100, SP=32, inf_type="IS")
+	# for i in xrange(1):
+	# 	run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=100, SP=64, inf_type="IS")
+	
 	# tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
 	# 	nested_model=runner_model, ps=5, sp=32, mode="advers")
 	# #-- run single conditioned sample ---//

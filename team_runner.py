@@ -173,7 +173,10 @@ class BasicRunnerPOM(object):
 				detection_prob = 0.001
 				# face the runner if within certain radius
 				if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
-					fv = direction(scale_up(my_noisy_plan[i]), other_loc)
+					# -----if other is looking for me
+					#fv = direction(scale_up(my_noisy_plan[i]), other_loc)
+					# -----if I am looking for other
+					fv = direction(other_loc, scale_up(my_noisy_plan[i])) # TODO: change back when running full experiments
 					intersections = self.isovist.GetIsovistIntersections(other_loc, fv)
 				
 					# does the chaser see other at time 'i'
