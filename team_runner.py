@@ -150,6 +150,8 @@ class BasicRunnerPOM(object):
 						t_detected.append(i)
 
 				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+				# ^ might want to change this to lflip when you do experiments next
+				# you wrote this on 1.19.2018 - iris
 				
 				Q.keep("intersections-t-"+str(i), intersections)
 
@@ -249,18 +251,21 @@ class TOMRunnerPOM(object):
 		my_loc = my_noisy_plan[t]
 
 		#---------------- do inference --------------------------------------------
-		if self.mode == "collab":
-			post_sample_traces, other_inferred_goal = self.collaborative_nested_inference(Q)
-		if self.mode == "advers":
-			post_sample_traces, other_inferred_goal = self.adversarial_nested_inference(Q)
-
 		other_noisy_plan = None
 		other_inferred_trace = None
-		for trace in post_sample_traces:
-			if trace["run_goal"] == other_inferred_goal:
-				other_inferred_trace = trace
-				other_noisy_plan = trace["my_plan"]
-				break
+
+		if self.mode == "collab":
+			post_sample_traces, other_inferred_goal = self.collaborative_nested_inference(Q)
+			for trace in post_sample_traces:
+				if trace["run_goal"] == other_inferred_goal:
+					other_inferred_trace = trace
+					other_noisy_plan = trace["my_plan"]
+					break
+		if self.mode == "advers":
+			# return the trace with least detections 
+			post_sample_traces, other_inferred_goal = self.adversarial_nested_inference(Q)
+			other_inferred_trace = trace
+			other_noisy_plan = trace["my_plan"]
 
 
 		#---------------- need to add RV of detection for each time step ----------
@@ -269,7 +274,7 @@ class TOMRunnerPOM(object):
 		for i in xrange(0, PATH_LIMIT):
 			cur_loc = scale_up(my_noisy_plan[i])
 			intersections = None
-			detection_prob = 0.001
+			detection_prob = -10000.0
 			# face the runner if within certain radius
 			if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
 				fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
@@ -279,21 +284,22 @@ class TOMRunnerPOM(object):
 				other_loc = scale_up(other_noisy_plan[i])
 				will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
 				if will_other_be_seen:
-					detection_prob = 0.999
+					detection_prob = -.01
 					t_detected.append(i)
 
-			future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+			future_detection = Q.lflip( p=detection_prob, name="detected_t_"+str(i) )
 			
 			Q.keep("intersections-t-"+str(i), intersections)
 
-		same_goal = 0
-		if goal_i == other_inferred_goal:
-			same_goal = 1
-		same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
+		if self.mode == "collab":
+			same_goal = 0
+			if goal_i == other_inferred_goal:
+				same_goal = 1
+			same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
 
-		runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) 
+			runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) #TODO: update this lflip 1.19.2018
 
-		print t_detected
+		#print t_detected
 		Q.keep("t_detected", t_detected)
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("other_plan", other_noisy_plan)
@@ -342,16 +348,32 @@ class TOMRunnerPOM(object):
 			# the runner wants all detections to be False
 			q.condition("detected_t_"+str(i), False)
 
-			# worse case scenario where runner full observes chaser
+			# worse case scenario where runner fully observes chaser
 			if i < t:
 				q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(i)))
 				q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(i)))
 
 		print q.cond_data_db
 		# need to think about this a bit more - iris - 1.17.2018
-		trace =  self.get_trace_for_most_probable_goal_location(q)
+		# thought about it -- I think I want the path with the least number of detections
+		# since this nested bit is in the runner's perspective
+		trace =  self.get_trace_for_least_detected_path_PO(q)
 
 		return trace
+
+	def get_trace_for_least_detected_path_PO(self, Q):
+		post_sample_traces = self.run_inference(Q, post_samples=self.PS, samples=self.SP)
+
+		detected_count = []
+		inferred_goal = []
+		for trace in post_sample_traces:
+			d_list = trace["t_detected"]
+			detected_count.append(len(d_list))
+
+			my_inferred_goal = trace["run_goal"]
+			inferred_goal.append(my_inferred_goal)
+
+		return post_sample_traces, post_sample_traces[detected_count.index(min(detected_count))]
 
 
 	def get_trace_for_most_detected_path_PO(self, Q):
@@ -397,8 +419,6 @@ class TOMRunnerPOM(object):
 			post_sample_trace = importance_sampling(trace, samples)
 			post_traces.append(post_sample_trace)
 		return post_traces
-
-	
 
 
 class TOMCollabRunner(object):
