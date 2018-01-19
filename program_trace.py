@@ -75,7 +75,6 @@ class ProgramTrace(object):
 			# 	prev_val = self.trace[name]
 			# 	prev_score = erp_class.score(prev_val, *args, **kwargs)
 			# 	self.cur_trace_score -= pre_score
-			print "name:", name, " score:", erp_score
 
 			self.cur_trace_score += erp_score
 		else:

@@ -629,22 +629,22 @@ def run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10
 	Q = ProgramTrace(runner_model)
 
 	# now we are in the perspective of the smart chaser
-	Q.condition("run_start", 3)
+	Q.condition("run_start", 2)
 	Q.condition("run_goal", 9)
 
 	# now other is the smart runner
-	Q.condition("other_run_start", 2)
+	Q.condition("other_run_start", 3)
 	Q.condition("other_run_goal", 9)
 	t = 0
-	#Q.condition("t", t)
+	Q.condition("t", t)
 	
-	# for i in xrange(t):
-	# 	Q.condition("detected_t_"+str(i), False)
-	# for i in xrange(t, 24):
-	# 	Q.condition("detected_t_"+str(i), True)
-	# 	if len(smart_runner_path) > i:
-	# 		Q.condition("other_run_x_"+str(i), smart_runner_path[i][0])
-	# 		Q.condition("other_run_y_"+str(i), smart_runner_path[i][1])
+	for i in xrange(t):
+		Q.condition("detected_t_"+str(i), False)
+	for i in xrange(t, 24):
+		Q.condition("detected_t_"+str(i), True)
+		if len(smart_runner_path) > i:
+			Q.condition("run_x_"+str(i), smart_runner_path[i][0])
+			Q.condition("run_y_"+str(i), smart_runner_path[i][1])
 
 	#run_inference_MH
 	if inf_type == "IS":
@@ -689,12 +689,12 @@ def run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10
 	
 	#ax.invert_yaxis()
 	cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower'); 
-	ax.set_title('Chaser')
+	ax.set_title('Runner')
 	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
 	cbar.ax.set_yticklabels(['0', '', ''])
 
 	test_id = int(time.time())
-	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(test_id)+"-"+str(PS)+"-Chaser-"+str(SP)+".eps"
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(test_id)+"-"+str(PS)+"-Runner-"+str(SP)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
 
 	results = []
@@ -708,11 +708,11 @@ def run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10
 	
 	#ax.invert_yaxis()
 	cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower');
-	ax.set_title('Runner')
+	ax.set_title('Chaser')
 	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
 	cbar.ax.set_yticklabels(['0', '', ''])
 
-	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(test_id)+"-"+str(PS)+"-Runner-"+str(SP)+".eps"
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(test_id)+"-"+str(PS)+"-Chaser-"+str(SP)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
 
 
@@ -1219,9 +1219,13 @@ def run_conditioned_basic_partial_model(locs, poly_map, isovist, mode="collab"):
 def run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers"):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode = mode)
 	Q = ProgramTrace(runner_model)
-	Q.condition("run_start", 3)
+
+	#runner
+	Q.condition("run_start", 2)
 	Q.condition("run_goal", 9)
-	Q.condition("other_run_start", 2)
+
+	#chaser
+	Q.condition("other_run_start", 3)
 	Q.condition("other_run_goal", 9)
 
 	smart_runner_path = [[0.76100000000000001, 0.33499999999999996], [0.79693306170966127, 0.31681719196329022], [0.80581636819548708, 0.32303925000961448], [0.82157666594697576, 0.35507871352210496], [0.84631098278986638, 0.38526295316268699], [0.85605836078664443, 0.42695933001031711], [0.85377945121472631, 0.47230018209458574], [0.85230055319010789, 0.50723326947937353], [0.84447424458178699, 0.55245234576568325], [0.84692934402731657, 0.59892793171904146], [0.84462995124525586, 0.64149175920823887], [0.83903436930244579, 0.68303283119596825], [0.83036661086806407, 0.73288779416030592], [0.79182007137000809, 0.7452031892041231], [0.77075904851722576, 0.78242258238023066], [0.75632207621249159, 0.82604988257051348], [0.73804574903129172, 0.86390936444508237], [0.67703633355554294, 0.92443317734841468], [0.63385802899748622, 0.91378880053088074], [0.58905849557792511, 0.91676698474768659], [0.54732582293488341, 0.91278407902095093], [0.50526092944104217, 0.91116753830143915], [0.43991293299067769, 0.89917202745069646]]
@@ -1233,8 +1237,8 @@ def run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="ad
 		Q.condition("detected_t_"+str(i), False)
 	for i in xrange(t, 24):
 		if len(smart_runner_path) > i:
-			Q.condition("other_run_x_"+str(i), smart_runner_path[i][0])
-			Q.condition("other_run_y_"+str(i), smart_runner_path[i][1])
+			Q.condition("run_x_"+str(i), smart_runner_path[i][0])
+			Q.condition("run_y_"+str(i), smart_runner_path[i][1])
 			Q.condition("detected_t_"+str(i), True)
 
 	score, trace = Q.run_model()
@@ -1587,9 +1591,27 @@ if __name__ == '__main__':
 
 	#runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
 	#run_unconditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
-	run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
-	# for i in xrange(1):
-	# 	run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=100, SP=16, inf_type="IS")
+	#run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers")
+	# a2d = np.atleast_2d
+	# sz = None
+	# lp = -.69
+	# lp = -6000
+	# lp = a2d( lp )
+	# if sz == None:
+	# 	sz = lp.shape
+	# r = np.random.rand( *sz )
+	# print r < np.exp( lp )
+	# print r
+	# print np.exp( lp )
+
+
+	# print np.exp( -0.01 )
+	# print np.exp( -6000)
+
+
+
+	for i in xrange(1):
+		run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=64, inf_type="IS")
 	# for i in xrange(1):
 	# 	run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=100, SP=16, inf_type="IS")
 	# for i in xrange(1):

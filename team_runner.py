@@ -157,10 +157,9 @@ class BasicRunnerPOM(object):
 			if goal_i == o_goal_i:
 				same_goal = 1
 
-			tightness = .9999999999999999999999999999999999999999
-			same_goal_prob = tightness*same_goal + (1-tightness)*(1-same_goal)
+			same_goal_prob = .999*same_goal + .001*(1-same_goal)
 
-			runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) 
+			runners_same_goal = Q.lflip( p=same_goal_prob, name="same_goal" ) 
 
 			Q.keep("t_detected", t_detected)
 			Q.keep("my_plan", my_noisy_plan)
@@ -172,23 +171,24 @@ class BasicRunnerPOM(object):
 			for i in xrange(0, PATH_LIMIT):
 				other_loc = scale_up(other_noisy_plan[i])
 				intersections = None
-				detection_prob = 0.001
+				detection_prob = -10000.0
 				# face the runner if within certain radius
 				if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
 					# -----if other is looking for me
-					#fv = direction(scale_up(my_noisy_plan[i]), other_loc)
-					# -----if I am looking for other
-					fv = direction(other_loc, scale_up(my_noisy_plan[i])) # TODO: change back when running full experiments
+					fv = direction(scale_up(my_noisy_plan[i]), other_loc)
 					intersections = self.isovist.GetIsovistIntersections(other_loc, fv)
 				
 					# does the chaser see other at time 'i'
 					curr_loc = scale_up(my_noisy_plan[i])
+					#if other is looking for me
 					will_I_be_seen = self.isovist.FindIntruderAtPoint( curr_loc, intersections )
+
+					#print will_I_be_seen
 					if will_I_be_seen:
-						detection_prob = 0.999
+						detection_prob = -0.01
 						t_detected.append(i)
 
-				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+				future_detection = Q.lflip( lp=detection_prob, name="detected_t_"+str(i) )
 				
 				Q.keep("intersections-t-"+str(i), intersections)
 
