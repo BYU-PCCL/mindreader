@@ -18,6 +18,7 @@ from team_runner import BasicRunner
 from team_runner import TOMCollabRunner
 from team_runner import BasicRunnerPOM
 from team_runner import TOMRunnerPOM
+from team_runner import BasicChaserPOM
 
 
 #import seaborn
@@ -623,28 +624,28 @@ def multiple_paths_to_heatmap( set_of_rrts, cnt=300, ss=100 ):
 	return heatmap
 
 def run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS"):
-	smart_runner_path = [[0.76100000000000001, 0.33499999999999996], [0.79693306170966127, 0.31681719196329022], [0.80581636819548708, 0.32303925000961448], [0.82157666594697576, 0.35507871352210496], [0.84631098278986638, 0.38526295316268699], [0.85605836078664443, 0.42695933001031711], [0.85377945121472631, 0.47230018209458574], [0.85230055319010789, 0.50723326947937353], [0.84447424458178699, 0.55245234576568325], [0.84692934402731657, 0.59892793171904146], [0.84462995124525586, 0.64149175920823887], [0.83903436930244579, 0.68303283119596825], [0.83036661086806407, 0.73288779416030592], [0.79182007137000809, 0.7452031892041231], [0.77075904851722576, 0.78242258238023066], [0.75632207621249159, 0.82604988257051348], [0.73804574903129172, 0.86390936444508237], [0.67703633355554294, 0.92443317734841468], [0.63385802899748622, 0.91378880053088074], [0.58905849557792511, 0.91676698474768659], [0.54732582293488341, 0.91278407902095093], [0.50526092944104217, 0.91116753830143915], [0.43991293299067769, 0.89917202745069646]]
+	#smart_runner_path = [[0.76100000000000001, 0.33499999999999996], [0.79693306170966127, 0.31681719196329022], [0.80581636819548708, 0.32303925000961448], [0.82157666594697576, 0.35507871352210496], [0.84631098278986638, 0.38526295316268699], [0.85605836078664443, 0.42695933001031711], [0.85377945121472631, 0.47230018209458574], [0.85230055319010789, 0.50723326947937353], [0.84447424458178699, 0.55245234576568325], [0.84692934402731657, 0.59892793171904146], [0.84462995124525586, 0.64149175920823887], [0.83903436930244579, 0.68303283119596825], [0.83036661086806407, 0.73288779416030592], [0.79182007137000809, 0.7452031892041231], [0.77075904851722576, 0.78242258238023066], [0.75632207621249159, 0.82604988257051348], [0.73804574903129172, 0.86390936444508237], [0.67703633355554294, 0.92443317734841468], [0.63385802899748622, 0.91378880053088074], [0.58905849557792511, 0.91676698474768659], [0.54732582293488341, 0.91278407902095093], [0.50526092944104217, 0.91116753830143915], [0.43991293299067769, 0.89917202745069646]]
 
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
 
 	# now we are in the perspective of the smart chaser
 	Q.condition("run_start", 2)
-	Q.condition("run_goal", 9)
+	#Q.condition("run_goal", 9)
 
 	# now other is the smart runner
 	Q.condition("other_run_start", 3)
-	Q.condition("other_run_goal", 9)
+	#Q.condition("other_run_goal", 9)
 	t = 0
 	Q.condition("t", t)
 	
 	for i in xrange(t):
 		Q.condition("detected_t_"+str(i), False)
 	for i in xrange(t, 24):
-		Q.condition("detected_t_"+str(i), True)
-		if len(smart_runner_path) > i:
-			Q.condition("run_x_"+str(i), smart_runner_path[i][0])
-			Q.condition("run_y_"+str(i), smart_runner_path[i][1])
+		Q.condition("detected_t_"+str(i), False)
+		# if len(smart_runner_path) > i:
+		# 	Q.condition("run_x_"+str(i), smart_runner_path[i][0])
+		# 	Q.condition("run_y_"+str(i), smart_runner_path[i][1])
 
 	#run_inference_MH
 	if inf_type == "IS":
@@ -712,7 +713,7 @@ def run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10
 	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
 	cbar.ax.set_yticklabels(['0', '', ''])
 
-	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(test_id)+"-"+str(PS)+"-Chaser-"+str(SP)+".eps"
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers_starts-"+str(test_id)+"-"+str(PS)+"-Chaser-"+str(SP)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
 
 
