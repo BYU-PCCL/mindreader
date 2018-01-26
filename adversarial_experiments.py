@@ -381,7 +381,7 @@ if __name__ == '__main__':
 	# print result_list
 
 	#plot_agent(locs, poly_map, isovist, mode="chaser")
-	run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", PS=10, SP=1, inf_type="IS")
+	run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", PS=100, SP=128, inf_type="IS")
 
 
 
