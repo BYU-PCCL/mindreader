@@ -263,6 +263,62 @@ def combine_all_into_heatmap(paths, other_paths, inf_type="IS", PS=10, SP=32):
 	plt.savefig(plot_name, bbox_inches='tight')
 
 
+def plot_agent(locs, poly_map, isovist, mode="chaser"):
+	rx1,ry1,rx2,ry2 = poly_map
+	start = 8
+	goal = 1
+
+	path = run_rrt_opt( np.atleast_2d(locs[start]), 
+		np.atleast_2d(locs[goal]), rx1,ry1,rx2,ry2 )
+
+	path = [[0.67500000000000004, 0.92500000000000004], [0.63255478357908257, 0.91627180541238606], [0.59010956715816509, 0.90754361082477197], [0.54766435073724762, 0.89881541623715788], [0.50521913431633014, 0.8900872216495439], [0.46277391789541267, 0.88135902706192981], [0.42032870147449519, 0.87263083247431572], [0.37788348505357766, 0.86390263788670174], [0.35653358792479589, 0.84149378114552198], [0.3623763358999873, 0.79915614021174641], [0.35360451421721967, 0.75671991839425301], [0.34483269253445198, 0.71428369657675961], [0.31423190245059396, 0.69211847706367291], [0.30676543046176979, 0.65074823379423619], [0.30115281775188701, 0.60777991574073731], [0.29554020504200418, 0.56481159768723843], [0.2826052044129625, 0.52576088762546513], [0.25532121104267552, 0.49533838998810387], [0.2625090017684939, 0.45260534139267106], [0.26969679249431228, 0.40987229279723836], [0.28180182663967396, 0.3695556255456921], [0.31352705570149092, 0.34159156805386648], [0.35549599961092604, 0.33080335574113984], [0.39746494352036116, 0.32001514342841314], [0.43874245813891877, 0.30862195166035145], [0.44386260812232065, 0.26559217311194105], [0.4725975902496975, 0.23474906068784063], [0.50470273681078559, 0.2056451547288663], [0.5368078833718738, 0.1765412487698918], [0.56891302993296189, 0.14743734281091744], [0.60179406883805042, 0.11927116309097109], [0.62550640735779983, 0.10136966378933744], [0.5908398890905453, 0.12736986165404424], [ 0.566,  0.146]]
+	# path = [[0.67500000000000004, 0.92500000000000004], [0.65257315123222315, 0.88792151254264762], [0.63014630246444625, 0.85084302508529519], 
+	# [0.63155851891651849, 0.80926978588584897], [0.62117446916951669, 0.76966677821107554], [0.59978192891061044, 0.73198207310344798], 
+	# [0.57838938865170419, 0.69429736799582031], [0.55699684839279784, 0.65661266288819276], [0.5356043081338917, 0.61892795778056509], 
+	# [0.51421176787498546, 0.58124325267293764], [0.49281922761607916, 0.54355854756531008], [0.46442592761261425, 0.51975175862279754], 
+	# [0.43013970654652456, 0.51279164418730971], [0.42135432210809609, 0.47035822813289818], [0.41256893766966768, 0.42792481207848654], 
+	# [0.39728680975943798, 0.3919710924427201], [0.35770634195684742, 0.38217386384803081], [0.38717722500722113, 0.35040524993415406], 
+	# [0.41664810805759489, 0.3186366360202772], [0.44611899110796871, 0.28686802210640039], [0.47558987415834247, 0.25509940819252352], 
+	# [0.50506075720871624, 0.22333079427864672], [0.54106231903180579, 0.1994690336465304], [0.56059804826754089, 0.16319620482953048], 
+	# [ 0.566,  0.146]]
+	# no_hover_path = []
+	# for pt in path:
+	# 	if abs(pt[0] - path[-2][0]) > .01:
+	# 		if abs(pt[1] - path[-2][1]) > 0.01:
+	# 			no_hover_path.append(pt)
+	# no_hover_path.append(path[-2])
+
+	# results = []
+	# results.append( path_to_heatmap([no_hover_path], ss=5  ))
+	# tmarg = []
+	# for r in results:
+	# 	tmarg.append( np.mean( r, axis=2 ) )
+	fig, ax = setup_plot(poly_map, locs, scale = 500)
+
+	#t = len(path)-1
+	t = 17
+
+	print path[:17]
+	for i in range(0, t):
+		ax.plot( [path[i][0]*500, path[i+1][0]*500 ], [ path[i][1]*500, path[i+1][1]*500], 
+			color = 'grey', linestyle="-", linewidth=1)
+		ax.scatter( path[i][0]*500,  path[i][1]*500, s = 10, facecolors='none', edgecolors='grey')
+	ax.scatter( path[t][0]*500,  path[t][1]*500, s = 10, facecolors='none', edgecolors='grey')
+		
+	plt.xticks([])
+	plt.yticks([])
+	# #ax.invert_yaxis()
+	# cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower')#; plt.show()
+
+
+	#ax.set_title('Smart Runner')
+	#cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
+	#cbar.ax.set_yticklabels(['0', '', ''])
+	plot_name="PO_forward_runs/chaser_test.eps"
+	plt.savefig(plot_name, bbox_inches='tight')
+
+	#print path
+
 
 if __name__ == '__main__':
 	#plot("test.eps")
@@ -329,16 +385,21 @@ if __name__ == '__main__':
 	# result_list = Experiment_1_Smart_Chaser_vs_Naive_Runner(num=1)
 	# print result_list
 
-	runner_start_list = [0,1,2,4,5,6,7,8]
-	paths = []
-	other_paths = []
-	for runner_start in runner_start_list:
-		print "running inference for runner's start: ", runner_start
-		_paths, _other_paths = distribution_goodness(locs, poly_map, isovist, mode="advers", PS=50, SP=128, inf_type="IS", runner_start=runner_start)
-		# paths +=  _paths
-		# other_paths += _other_paths
+	#plot_agent(locs, poly_map, isovist, mode="chaser")
+	run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", PS=100, SP=128, inf_type="IS")
 
 
-		combine_all_into_heatmap(_paths, _other_paths, PS=50, SP=128)
+
+	# runner_start_list = [0,1,2,4,5,6,7,8]
+	# paths = []
+	# other_paths = []
+	# for runner_start in runner_start_list:
+	# 	print "running inference for runner's start: ", runner_start
+	# 	_paths, _other_paths = distribution_goodness(locs, poly_map, isovist, mode="advers", PS=50, SP=128, inf_type="IS", runner_start=runner_start)
+	# 	# paths +=  _paths
+	# 	# other_paths += _other_paths
+
+
+	# 	combine_all_into_heatmap(_paths, _other_paths, PS=50, SP=128)
 
 	

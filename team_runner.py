@@ -206,6 +206,8 @@ class BasicRunnerPOM(object):
 			post_traces.append(post_sample_trace)
 		return post_traces
 
+		
+
 class TOMRunnerPOM(object):
 	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1, model="collab"):
 		# field of view calculator

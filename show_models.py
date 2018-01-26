@@ -717,6 +717,119 @@ def run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10
 	plt.savefig(plot_name, bbox_inches='tight')
 
 
+def run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS"):
+	chaser_true = [[0.675, 0.925], [0.6325547835790826, 0.9162718054123861], [0.5901095671581651, 0.907543610824772], [0.5476643507372476, 0.8988154162371579], [0.5052191343163301, 0.8900872216495439], [0.46277391789541267, 0.8813590270619298], [0.4203287014744952, 0.8726308324743157], [0.37788348505357766, 0.8639026378867017], [0.3565335879247959, 0.841493781145522], [0.3623763358999873, 0.7991561402117464], [0.35360451421721967, 0.756719918394253], [0.344832692534452, 0.7142836965767596], [0.31423190245059396, 0.6921184770636729], [0.3067654304617698, 0.6507482337942362], [0.301152817751887, 0.6077799157407373], [0.2955402050420042, 0.5648115976872384], [0.2826052044129625, 0.5257608876254651]]
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", 2)
+	#Q.condition("run_goal", 9)
+	Q.condition("other_run_start", 8)
+	#Q.condition("other_run_goal", 9)
+	t = 17
+	Q.condition("t", t)
+	
+	for i in xrange(t):
+		Q.condition("detected_t_"+str(i), False)
+		Q.condition("other_run_x_"+str(i), chaser_true[i][0])
+		Q.condition("other_run_y_"+str(i), chaser_true[i][1])
+	for i in xrange(t, 24):
+		Q.condition("detected_t_"+str(i), False)
+
+	#run_inference_MH
+	if inf_type == "IS":
+		post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
+	if inf_type == "MH":
+		post_sample_traces = run_inference_MH(Q, post_samples=PS, samples=SP)
+
+
+	paths = []
+	other_paths = []
+	goals = []
+	for trace in post_sample_traces:
+		path = trace["my_plan"]
+		other_path = trace["other_plan"]
+		inferred_goal = trace["run_goal"]
+		goals.append(inferred_goal)
+		# remove hovering points on path
+		no_hover_path = []
+		for pt in path:
+			if abs(pt[0] - path[-2][0]) > .01:
+				if abs(pt[1] - path[-2][1]) > 0.01:
+					no_hover_path.append(pt)
+		no_hover_path.append(path[-2])
+		paths.append(no_hover_path)
+
+		# remove hovering points on other path
+		no_hover_other_path = []
+		for pt in other_path:
+			if abs(pt[0] - other_path[-2][0]) > .01:
+				if abs(pt[1] - other_path[-2][1]) > 0.01:
+					no_hover_other_path.append(pt)
+		no_hover_other_path.append(other_path[-2])
+		other_paths.append(no_hover_other_path)
+
+	#print "runner path: ", no_hover_path
+	results = []
+	results.append( path_to_heatmap(paths) )
+	tmarg = []
+	for r in results:
+		tmarg.append( np.mean( r, axis=2 ) )
+	fig, ax = setup_plot(poly_map, locs, scale = 500)
+	plt.xticks([])
+	plt.yticks([])
+	
+	#ax.invert_yaxis()
+	cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower')#; plt.show()
+	#ax.set_title('Marginal of Runner Paths Avoiding Chaser')
+	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
+	cbar.ax.set_yticklabels(['0', '', ''])
+
+	test_id = int(time.time())
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(PS)+"-Runner_Pers-"+str(SP)+"-"+str(test_id)+".eps"
+	plt.savefig(plot_name, bbox_inches='tight')
+
+	results = []
+	results.append( path_to_heatmap(other_paths) )
+	tmarg = []
+	for r in results:
+		tmarg.append( np.mean( r, axis=2 ) )
+	fig, ax = setup_plot(poly_map, locs, scale = 500)
+	plt.xticks([])
+	plt.yticks([])
+	
+	#ax.invert_yaxis()
+	cax = ax.imshow( tmarg[0], interpolation='nearest', cmap="jet", origin='lower')#; plt.show()
+	#ax.set_title('Marginal of Naive Chaser Paths')
+	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
+	cbar.ax.set_yticklabels(['0', '', ''])
+
+	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(PS)+"-Chaser-"+str(SP)+"-"+str(test_id)+".eps"
+	plt.savefig(plot_name, bbox_inches='tight')
+	#------------------------------------------
+	fig = plt.figure(1)
+	fig.clf()
+	ax = fig.add_subplot(1, 1, 1)
+	data = goals
+	print data
+
+	# fixed bin size
+	bins = np.arange(0, 10, 1) # fixed bin size
+	print "bins:", bins
+
+	plt.xlim([min(data)-1, max(data)+1])
+
+	plt.hist(data, bins=bins, alpha=0.5)
+	plt.title('Posterior over Goals')
+	plt.xlabel('Goal')
+	plt.ylabel('count')
+
+	plt.show()
+	plot_name="PO_forward_runs/unknown_inference/-histo-goals-"+str(PS)+"-"+str(SP)+"-"+str(test_id)+".eps"
+	plt.savefig(plot_name, bbox_inches='tight')
+
+
+
+
 def run_inference_advers_PO(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS"):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
