@@ -19,7 +19,6 @@ from team_runner import BasicRunner
 from team_runner import TOMCollabRunner
 from team_runner import BasicRunnerPOM
 from team_runner import TOMRunnerPOM
-from team_runner import BasicChaserPOM
 
 
 #import seaborn

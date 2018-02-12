@@ -167,7 +167,7 @@ def Experiment_4_Smartest_Chaser_vs_Naive_Runner():
 
 # seperates the inference process from printing it on a heatmap
 # this lets me run several inferences to collect several paths and later map them
-def what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS", chaser_start=9, chaser_goal=1):
+def what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS"):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
 
@@ -176,8 +176,9 @@ def what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=10, SP=32,
 	Q.condition("run_start", runner_start)
 	Q.condition("run_goal", runner_goal)
 
-	Q.condition("other_run_start", chaser_start)
-	Q.condition("other_run_goal", chaser_goal)
+	# we want to sample from the prior for tha chaser start and goal
+	# Q.condition("other_run_start", chaser_start)
+	# Q.condition("other_run_goal", chaser_goal)
 	t = 0
 	Q.condition("t", t)
 	
@@ -289,7 +290,7 @@ def stealth_runner_given_chaser_locs(locs, poly_map, isovist, mode="advers", PS=
 
 
 
-def combine_all_into_heatmap(paths, other_paths, inf_type="IS", PS=10, SP=32):
+def combine_all_into_heatmap(paths, other_paths, inf_type="IS", PS=10, SP=32, folder="unknown_inference/"):
 	#print "runner path: ", no_hover_path
 	results = []
 	results.append( path_to_heatmap(paths) )
@@ -307,7 +308,7 @@ def combine_all_into_heatmap(paths, other_paths, inf_type="IS", PS=10, SP=32):
 	cbar.ax.set_yticklabels(['0', '', ''])
 
 	test_id = int(time.time())
-	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-starts"+str(test_id)+"-"+str(PS)+"-Runner-"+str(SP)+".eps"
+	plot_name="PO_forward_runs/"+folder+inf_type+"_advers-starts"+str(test_id)+"-"+str(PS)+"-Runner-"+str(SP)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
 
 	results = []
@@ -325,7 +326,7 @@ def combine_all_into_heatmap(paths, other_paths, inf_type="IS", PS=10, SP=32):
 	cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
 	cbar.ax.set_yticklabels(['0', '', ''])
 
-	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers_starts-"+str(test_id)+"-"+str(PS)+"-Chaser-"+str(SP)+".eps"
+	plot_name="PO_forward_runs/"+folder+inf_type+"_advers_starts-"+str(test_id)+"-"+str(PS)+"-Chaser-"+str(SP)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
 
 
@@ -447,9 +448,13 @@ if __name__ == '__main__':
 	# print result_list
 
 	#plot_agent(locs, poly_map, isovist, mode="chaser")
-	run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", PS=100, SP=128, inf_type="IS")
+	#run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", PS=100, SP=128, inf_type="IS")
 
-
+	#------------------------------------------
+	# to run the experiment where we want to see if the runner goes through alley ways if we condition
+	# the runner start and goal (on the middlemost model), and the chaser's start and goal
+	# we run several experiments where we condition the starting location for the runner at different
+	# locations
 
 	# runner_start_list = [0,1,2,4,5,6,7,8]
 	# paths = []
@@ -463,4 +468,17 @@ if __name__ == '__main__':
 
 	# 	combine_all_into_heatmap(_paths, _other_paths, PS=50, SP=128)
 
+	# -----------------------------------------
+
+	# to run the experiment where we want to see if the runner goes through alley ways if we condition
+	# the runner start and goal (on the middlemost model), and sample from the prior for the 
+	# chaser's start and goal locations
+
+	paths = []
+	other_paths = []
+	_paths, _other_paths = what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=1, SP=1, inf_type="IS")
 	
+	paths +=  _paths
+	other_paths += _other_paths
+	combine_all_into_heatmap(_paths, _other_paths, PS=1, SP=1, folder="stealth/")
+	# ---------------------------------------
