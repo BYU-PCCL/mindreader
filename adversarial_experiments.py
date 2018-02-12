@@ -20,7 +20,6 @@ def condition_advers_basicPO_model(runner_model, start, other_start, t, path, fu
 
 	return Q
 
-
 def E1(locs, poly_map, isovist, directory="Experiment_1", PS=1, SP=1):
 	x1,y1,x2,y2 = poly_map
 	sim_id = str(int(time.time()))
@@ -58,20 +57,20 @@ def E1(locs, poly_map, isovist, directory="Experiment_1", PS=1, SP=1):
 	inferred_runner_plan = post_sample_traces[0]["other_plan"]
 
 
-	# # for each time step
-	# for t in xrange(0, simulate_time):
+	# for each time step
+	for t in xrange(0, simulate_time):
 
-	# 	#[removed planning by inference section here]
+		#[removed planning by inference section here]
 		
-	# 	# -----------------------------------
+		# -----------------------------------
 
-	# 	# need to store the locations that they were located so they can condition on them
+		# need to store the locations that they were located so they can condition on them
 
-	# 	plot_movements(chaser_path, runner_path, sim_id, poly_map, locs, t, code="PO-find_eachother", directory="PO_forward_runs/"+directory+"/"+sim_id)
-	# 	if runner_detected:
-	# 		return True
+		plot_movements(chaser_path, runner_path, sim_id, poly_map, locs, t, code="PO-find_eachother", directory="PO_forward_runs/"+directory+"/"+sim_id)
+		if runner_detected:
+			return True
 
-	# return False # for Chaser failed
+	return False # for Chaser failed
 
 
 def planning_by_inference_E1(chaser_model, chaser_start, runner_start, chaser_path, runner_plan, t, poly_map):
@@ -123,7 +122,7 @@ def time_to_reach_goal(path):
 	return len(no_hover_path)
 
 #-----------------------------------------------------
-
+# need to implement (but did not since I used previous experiments)
 def E2():
 	pass
 
@@ -157,6 +156,73 @@ def Experiment_4_Smartest_Chaser_vs_Naive_Runner():
 
 
 
+# for this experiment, I do NOT condition the start and goal locations for the  CHASER ( let's try 0 to 8)
+
+# but I do condition the start and goal for the runner.
+
+# then to show that no matter where the chaser may be going
+
+# the runner will travel through the most stealthy areas. (alleyways... taking the long way.. etc)
+
+
+# seperates the inference process from printing it on a heatmap
+# this lets me run several inferences to collect several paths and later map them
+def what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS", chaser_start=9, chaser_goal=1):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
+	Q = ProgramTrace(runner_model)
+
+	runner_start = 0
+	runner_goal = 8
+	Q.condition("run_start", runner_start)
+	Q.condition("run_goal", runner_goal)
+
+	Q.condition("other_run_start", chaser_start)
+	Q.condition("other_run_goal", chaser_goal)
+	t = 0
+	Q.condition("t", t)
+	
+	for i in xrange(t):
+		Q.condition("detected_t_"+str(i), False)
+	for i in xrange(t, 24):
+		Q.condition("detected_t_"+str(i), False)
+		# if len(smart_runner_path) > i:
+		# 	Q.condition("run_x_"+str(i), smart_runner_path[i][0])
+		# 	Q.condition("run_y_"+str(i), smart_runner_path[i][1])
+
+	#run_inference_MH
+	if inf_type == "IS":
+		post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
+	if inf_type == "MH":
+		post_sample_traces = run_inference_MH(Q, post_samples=PS, samples=SP)
+
+
+	paths = []
+	other_paths = []
+	for trace in post_sample_traces:
+		path = trace["my_plan"]
+		other_path = trace["other_plan"]
+
+		# remove hovering points on path
+		no_hover_path = []
+		for pt in path:
+			if abs(pt[0] - path[-2][0]) > .01:
+				if abs(pt[1] - path[-2][1]) > 0.01:
+					no_hover_path.append(pt)
+		no_hover_path.append(path[-2])
+		paths.append(no_hover_path)
+
+		# remove hovering points on other path
+		no_hover_other_path = []
+		for pt in other_path:
+			if abs(pt[0] - other_path[-2][0]) > .01:
+				if abs(pt[1] - other_path[-2][1]) > 0.01:
+					no_hover_other_path.append(pt)
+		no_hover_other_path.append(other_path[-2])
+		other_paths.append(no_hover_other_path)
+
+	return paths, other_paths
+
+
 # for this experiment I condition the start and goal locations for the chaser to be 3 and 9. 
 
 # then to show that no matter where the runner starts (while conditioning goal to be at 9 as well)
@@ -166,7 +232,7 @@ def Experiment_4_Smartest_Chaser_vs_Naive_Runner():
 
 # seperates the inference process from printing it on a heatmap
 # this lets me run several inferences to collect several paths and later map them
-def distribution_goodness(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS", runner_start=0):
+def stealth_runner_given_chaser_locs(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS", runner_start=0):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
 
@@ -390,7 +456,7 @@ if __name__ == '__main__':
 	# other_paths = []
 	# for runner_start in runner_start_list:
 	# 	print "running inference for runner's start: ", runner_start
-	# 	_paths, _other_paths = distribution_goodness(locs, poly_map, isovist, mode="advers", PS=50, SP=128, inf_type="IS", runner_start=runner_start)
+	# 	_paths, _other_paths = stealth_runner_given_chaser_locs(locs, poly_map, isovist, mode="advers", PS=50, SP=128, inf_type="IS", runner_start=runner_start)
 	# 	# paths +=  _paths
 	# 	# other_paths += _other_paths
 

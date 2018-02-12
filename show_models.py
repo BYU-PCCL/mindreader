@@ -4,6 +4,7 @@ from my_rrt import *
 import isovist as i
 from random import randint
 import matplotlib
+
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import cPickle
@@ -63,7 +64,7 @@ def setup_plot(poly_map, locs=None, scale=1):
 	# plot map
 	x1,y1,x2,y2 = poly_map
 	for i in xrange(x1.shape[0]):
-		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black', linewidth=1  )
+		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'grey', linewidth=1  )
 
 	# show possible start and goal locations
 	add_locations = True
@@ -718,15 +719,15 @@ def run_inference_advers_nested_PO(locs, poly_map, isovist, mode="advers", PS=10
 
 
 def run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS"):
-	chaser_true = [[0.675, 0.925], [0.6325547835790826, 0.9162718054123861], [0.5901095671581651, 0.907543610824772], [0.5476643507372476, 0.8988154162371579], [0.5052191343163301, 0.8900872216495439], [0.46277391789541267, 0.8813590270619298], [0.4203287014744952, 0.8726308324743157], [0.37788348505357766, 0.8639026378867017], [0.3565335879247959, 0.841493781145522], [0.3623763358999873, 0.7991561402117464], [0.35360451421721967, 0.756719918394253], [0.344832692534452, 0.7142836965767596], [0.31423190245059396, 0.6921184770636729], [0.3067654304617698, 0.6507482337942362], [0.301152817751887, 0.6077799157407373], [0.2955402050420042, 0.5648115976872384], [0.2826052044129625, 0.5257608876254651]]
-	#chaser_true = [[0.815, 0.598], [0.7759947201243943, 0.5791223433762703], [0.7369894402487884, 0.5602446867525407], [0.6979841603731827, 0.5413670301288112], [0.6589788804975769, 0.5224893735050815], [0.6199736006219713, 0.5036117168813519], [0.590715204108021, 0.48188403611330455], [0.6061149294313255, 0.44543870211582487], [0.5788500910385285, 0.41175775252718594], [0.5515852526457314, 0.37807680293854706], [0.5243204142529344, 0.3443958533499081]]
+	#haser_true = [[0.675, 0.925], [0.6325547835790826, 0.9162718054123861], [0.5901095671581651, 0.907543610824772], [0.5476643507372476, 0.8988154162371579], [0.5052191343163301, 0.8900872216495439], [0.46277391789541267, 0.8813590270619298], [0.4203287014744952, 0.8726308324743157], [0.37788348505357766, 0.8639026378867017], [0.3565335879247959, 0.841493781145522], [0.3623763358999873, 0.7991561402117464], [0.35360451421721967, 0.756719918394253], [0.344832692534452, 0.7142836965767596], [0.31423190245059396, 0.6921184770636729], [0.3067654304617698, 0.6507482337942362], [0.301152817751887, 0.6077799157407373], [0.2955402050420042, 0.5648115976872384], [0.2826052044129625, 0.5257608876254651]]
+	chaser_true = [[0.815, 0.598], [0.7759947201243943, 0.5791223433762703], [0.7369894402487884, 0.5602446867525407], [0.6979841603731827, 0.5413670301288112], [0.6589788804975769, 0.5224893735050815], [0.6199736006219713, 0.5036117168813519], [0.590715204108021, 0.48188403611330455], [0.6061149294313255, 0.44543870211582487], [0.5788500910385285, 0.41175775252718594], [0.5515852526457314, 0.37807680293854706], [0.5243204142529344, 0.3443958533499081]]
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
-	Q.condition("run_start", 2)
-	#Q.condition("run_goal", 9)
-	Q.condition("other_run_start", 8)
+	Q.condition("run_start", 6)
+	#Q.condition("run_goals9)
+	Q.condition("other_run_start", 7)
 	#Q.condition("other_run_goal", 9)
-	t = 17
+	t = 11
 	Q.condition("t", t)
 	
 	for i in xrange(t):
@@ -745,12 +746,14 @@ def run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", 
 
 	paths = []
 	other_paths = []
-	goals = []
+	runner_goals = []
+	chaser_goals = []
+
 	for trace in post_sample_traces:
 		path = trace["my_plan"]
 		other_path = trace["other_plan"]
-		inferred_goal = trace["run_goal"]
-		goals.append(inferred_goal)
+		runner_goals.append(trace["run_goal"])
+		chaser_goals.append(trace["other_run_goal"])
 		# remove hovering points on path
 		no_hover_path = []
 		for pt in path:
@@ -807,27 +810,53 @@ def run_inference_advers_PO_chaser_cond(locs, poly_map, isovist, mode="advers", 
 	plot_name="PO_forward_runs/unknown_inference/"+inf_type+"_advers-"+str(PS)+"-Chaser-"+str(SP)+"-"+str(test_id)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
 	#------------------------------------------
+
+
 	fig = plt.figure(1)
 	fig.clf()
 	ax = fig.add_subplot(1, 1, 1)
-	data = goals
-	print data
+	data = runner_goals
+	#rint data
 
 	# fixed bin size
-	bins = np.arange(0, 10, 1) # fixed bin size
-	print "bins:", bins
+	bins = np.arange(0, 11, 1) # fixed bin size
+	#print "bins:", bins
 
 	plt.xlim([0, 10])
+	#plt.ylim([0, 35])
 
-	plt.hist(data, bins=bins, alpha=0.5)
+	plt.hist(data, bins=bins)
 	plt.title('Posterior over Goals')
 	plt.xlabel('Goal')
 	plt.ylabel('count')
 
-	plt.show()
-	plot_name="PO_forward_runs/unknown_inference/-histo-goals-"+str(PS)+"-"+str(SP)+"-"+str(test_id)+".eps"
+	#plt.show()
+	plot_name="PO_forward_runs/unknown_inference/IS-histo-goals-runner-"+str(PS)+"-"+str(SP)+"-"+str(test_id)+".eps"
 	plt.savefig(plot_name, bbox_inches='tight')
+    #-------------------------------------------
 
+
+	fig = plt.figure(1)
+	fig.clf()
+	ax = fig.add_subplot(1, 1, 1)
+	data = chaser_goals
+	#print data
+
+	# fixed bin size
+	bins = np.arange(0, 11, 1) # fixed bin size
+	#print "bins:", bins
+
+	plt.xlim([0, 10])
+	#plt.ylim([0, 35])
+
+	plt.hist(data, bins=bins)
+	plt.title('Posterior over Goals')
+	plt.xlabel('Goal')
+	plt.ylabel('count')
+
+	#plt.show()
+	plot_name="PO_forward_runs/unknown_inference/IS-histo-goals-chaser-"+str(PS)+"-"+str(SP)+"-"+str(test_id)+".eps"
+	plt.savefig(plot_name, bbox_inches='tight')
 
 
 
