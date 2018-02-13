@@ -264,9 +264,8 @@ class TOMRunnerPOM(object):
 					break
 		if self.mode == "advers":
 			# return the trace with least detections 
-			post_sample_traces, other_inferred_goal = self.adversarial_nested_inference(Q)
-			other_inferred_trace = trace
-			other_noisy_plan = trace["my_plan"]
+			other_inferred_trace = self.adversarial_nested_inference(Q)
+			other_noisy_plan = other_inferred_trace["my_plan"]
 
 
 		#---------------- need to add RV of detection for each time step ----------
@@ -341,25 +340,33 @@ class TOMRunnerPOM(object):
 	def adversarial_nested_inference(self, Q):
 		t = Q.fetch("t")
 		q = ProgramTrace(self.nested_model)
+
+		# condits the nested model with the chaser's information
 		q.condition("other_run_start", Q.fetch("init_run_start"))
 		q.condition("t", Q.fetch("t")) 
+		# since we assume that the chaser knows where the runner starts
 		q.condition("run_start", Q.get_obs("other_run_start"))
 
 		for i in xrange(30):
 			# the runner wants all detections to be False
 			q.condition("detected_t_"+str(i), False)
 
-			#XXX NO, we don't want the worst case scenario: The Runner should have a Naive model of the Chaser
-			# worse case scenario where runner fully observes chaser
+			#XXX You can choose if you want the worst case scenario: 
+			# Worse case scenario: where runner fully observes chaser
+			# IF NOT: then The Runner will have a Naive model of the Chaser
+			# 
+			#  XXX UNCOMMENT IF YOU WANT WORST CASE SCENARIO 
+			# (although sometimes, the behavior of the RRT messes with this)
+			# this is because the Chaser isn't guarenteed to search like a planned path
 			# if i < t:
 			# 	q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(i)))
 			# 	q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(i)))
 
-		print q.cond_data_db
+		#print q.cond_data_db
 		# need to think about this a bit more - iris - 1.17.2018
 		# thought about it -- I think I want the path with the least number of detections
 		# since this nested bit is in the runner's perspective
-		trace =  self.get_trace_for_least_detected_path_PO(q)
+		post_sample_traces, trace =  self.get_trace_for_least_detected_path_PO(q)
 
 		return trace
 
