@@ -1,5 +1,6 @@
 
 from show_models import *
+from adversarial_experiments import combine_all_into_heatmap
 
 #**********************************************
 # all of the models are located in team_runner.py
@@ -22,10 +23,10 @@ from show_models import *
 
 def MIDDLEMOST_MODLE_EXAMPLE(locs, poly_map, isovist, PS=10, SP=32, inf_type="IS"):
 	# True Chaser Observations
-	chaser_true = [[0.815, 0.598], [0.7759947201243943, 0.5791223433762703], [0.7369894402487884, 0.5602446867525407], [0.6979841603731827, 0.5413670301288112], [0.6589788804975769, 0.5224893735050815], [0.6199736006219713, 0.5036117168813519], [0.590715204108021, 0.48188403611330455], [0.6061149294313255, 0.44543870211582487], [0.5788500910385285, 0.41175775252718594], [0.5515852526457314, 0.37807680293854706], [0.5243204142529344, 0.3443958533499081]]
+	#chaser_true = [[0.815, 0.598], [0.7759947201243943, 0.5791223433762703], [0.7369894402487884, 0.5602446867525407], [0.6979841603731827, 0.5413670301288112], [0.6589788804975769, 0.5224893735050815], [0.6199736006219713, 0.5036117168813519], [0.590715204108021, 0.48188403611330455], [0.6061149294313255, 0.44543870211582487], [0.5788500910385285, 0.41175775252718594], [0.5515852526457314, 0.37807680293854706], [0.5243204142529344, 0.3443958533499081]]
 	
 	# Create the Middlemost model
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
 	Q = ProgramTrace(runner_model)
 	
 	# Since this is the middlemost model - it's in the perspective of the runner
@@ -62,47 +63,155 @@ def MIDDLEMOST_MODLE_EXAMPLE(locs, poly_map, isovist, PS=10, SP=32, inf_type="IS
 
 
 	# to go through the posterior samples (of traces)
+
 	paths = []
 	other_paths = []
-	runner_goals = []
-	chaser_goals = []
-
 	for trace in post_sample_traces:
-		path = trace["my_plan"] # the runner's plan
-		other_path = trace["other_plan"] # the chaser's plan
-		runner_goals.append(trace["run_goal"])
-		chaser_goals.append(trace["other_run_goal"]) 
+		path = trace["my_plan"]
+		other_path = trace["other_plan"]
+
+		# remove hovering points on path
+		no_hover_path = []
+		for pt in path:
+			if abs(pt[0] - path[-2][0]) > .01:
+				if abs(pt[1] - path[-2][1]) > 0.01:
+					no_hover_path.append(pt)
+		no_hover_path.append(path[-2])
+		paths.append(no_hover_path)
+
+		# remove hovering points on other path
+		no_hover_other_path = []
+		for pt in other_path:
+			if abs(pt[0] - other_path[-2][0]) > .01:
+				if abs(pt[1] - other_path[-2][1]) > 0.01:
+					no_hover_other_path.append(pt)
+		no_hover_other_path.append(other_path[-2])
+		other_paths.append(no_hover_other_path)
+
+	return paths, other_paths
 
 
+	
 
-def OUTERMOST_MODEL_EXAMPLE(locs, poly_map, isovist, PS=10, SP=32, inf_type="IS"):
+
+def EX_1_SIMPLE_FULL_NESTED_MODEL(locs, poly_map, isovist, PS=10, SP=32, inf_type="IS"):
 	#-----------run TOM partially observable model ------
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
 	# pass in middle most model in tom_runner_model
 	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-		nested_model=runner_model, ps=5, sp=32, model="advers") # adversarial model
-
-
+		nested_model=runner_model, ps=1, sp=1, mode="advers") # adversarial model
 
 	Q = ProgramTrace(tom_runner_model)
-
-	Q.condition("init_run_start", 1) # Chaser Start Loc
-
-	# since the middle most model needs to be conditioned... 
+	
+	# IMPORTANT: since the middle most model needs to be conditioned... 
 	# because we assume that the chaser knows the starting location of the Runner
 	# we set it as an observation first.
-	# then inside the TOMRunnerPOM model, it conditiones the model 
-	Q.set_obs("other_run_start", 8) # other is the Runner, Runner Start Loc
+	# then inside the TOMRunnerPOM model, it conditiones the model (CAN BE REMOVED)
+	Q.set_obs("other_run_start", 8) # "other" is the Runner, therefor this is Runner's Start Loc rv plot_name
+	
+	# then you can run the model
+	tom_runner_model.run(Q)
+
+def EX_2_INFERENCE_FULL_NESTED_MODEL(locs, poly_map, isovist, PS=10, SP=32, nested_PS=10, nested_SP=32, inf_type="IS"):
+	#-----------run TOM partially observable model ------
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
+	# pass in middle most model in tom_runner_model
+	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
+		nested_model=runner_model, ps=nested_PS, sp=nested_SP, mode="advers") # adversarial model
+
+	Q = ProgramTrace(tom_runner_model)
+	
+	# # since the middle most model needs to be conditioned... 
+	# # because we assume that the chaser knows the starting location of the Runner
+	# # we set it as an observation first.
+	# # then inside the TOMRunnerPOM model, it conditiones the model 
+	Q.set_obs("other_run_start", 8) # "other" is the Runner, therefor this is Runner's Start Loc rv name
+
+	# conditioning the chaser's starting location
+	Q.condition("init_run_start", 1)
+
+	# conditioning the timestep	
 	t = 8
 	Q.condition("t", t)
 
-	my_plan = [[0.56599999999999995, 0.14600000000000002], [0.55556809280738129, 0.18721437976543853], [0.5445341110551255, 0.23050610975954094], [0.53610663650986889, 0.27570707994484339], [0.51838817809125204, 0.31364677053850654], [0.51518717782727763, 0.35497127647386223], [0.55530733907318341, 0.38068397671159959], [0.56603426039645688, 0.420586401074451], [0.57876353334580199, 0.46649009155864785], [0.5894309668616603, 0.50360276514056979]]
-	other_plan = [[0.67500000000000004, 0.92500000000000004], [0.65595794760796733, 0.88364953074871666], [0.63593639118326906, 0.84460049053946695], [0.632454561514043, 0.80177855079821769], [0.62322367768018871, 0.76592206121988504], [0.61070805265174255, 0.72506794767846527], [0.58606327906428324, 0.68850497091510821], [0.56369666918811434, 0.65184792821656079], [0.53867971062239195, 0.61822274529712795], [0.51418992415138365, 0.57765462476393603]]
-	detections = [False, False, False, False, False, False, False, True]
-
 	post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
 
+	# for this example we just grab the first trace
 	trace = post_sample_traces[0]
+
+	fig, ax = setup_plot(poly_map, locs)
+
+	print ""
+	print "TIMESTEPS RUNNER WAS DETECTED:", trace["t_detected"]
+
+	for i in trace["t_detected"]:
+		intersections = trace["intersections-t-"+str(i)]
+		# show last isovist
+		if not intersections is None:
+			intersections = np.asarray(intersections)
+			intersections /= 500.0
+			if not intersections.shape[0] == 0:
+				patches = [ Polygon(intersections, True)]
+				p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.2)
+				colors = 100*np.random.rand(len(patches))
+				p.set_array(np.array(colors))
+				ax.add_collection(p)
+
+	nested_post_samples = trace["nested_post_samples"]
+	for nested_trace in nested_post_samples:
+		#print "HERE"
+		path = nested_trace["my_plan"]
+		for i in range(t-1, 39):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'red', linestyle="-", linewidth=1, label="Other's Plan", alpha=0.2)
+			if i in trace["t_detected"]:
+				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	path = trace["my_plan"]
+	t = trace["t"]
+	for i in range(0, t-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+	for i in range(t-1, 39):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'grey', linestyle=":", linewidth=1)
+
+
+	# mark the runner at time t on its plan
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	path = trace["other_plan"]
+
+	for i in range(0, t-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'blue', linestyle="--", linewidth=1, label="Other's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='blue')
+		# else:
+		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+	# mark the runner at time t on its plan
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='blue')
+
+	for i in range(t, 39):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'blue', linestyle="--", linewidth=1, label="Other's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	
+
+	plt.figtext(0.92, 0.85, "Values", horizontalalignment='left', weight="bold") 
+	plt.figtext(0.92, 0.80, "A Start: " +str(trace["init_run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.75, "A Goal: " +str(trace["init_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.70, "B Start: " +str(trace["other_run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.65, "B Goal: " +str(trace["other_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.60, "time step: " +str(trace["t"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.55, "A detected B count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
+	#close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/tom/tom_run_and_find-"+str(int(time.time()))+".eps")
+	plot_full_path="PO_forward_runs/conditioned/single_samples/tom/IS_tom_run_and_find-P"+str(PS)+"-S"+str(SP)+"-"+str(int(time.time()))+".eps"
+	close_plot(fig, ax, plot_name=plot_full_path)
+	
+	#print "OUTPUT CAN BE SEEN AT:", plot_full_path
 
 
 
@@ -130,8 +239,33 @@ if __name__ == '__main__':
 
 
 
-	MIDDLEMOST_MODLE_EXAMPLE(locs, poly_map, isovist, PS=10, SP=32, inf_type="IS")
+	####################################################################################
+	# EXAMPLE 0: middlemost model - show on heatmap
+	####################################################################################
+	print "RUNNING MIDDLEMOST MODEL EXAMPLE...DISPLAYS 2 HEATMAPS - ONE FOR CHASER AND ANOTHER FOR RUNNER"
+	path, other_path = MIDDLEMOST_MODLE_EXAMPLE(locs, poly_map, isovist, PS=1, SP=1, inf_type="IS")
+	combine_all_into_heatmap(path, other_path, poly_map=poly_map, locs=locs, PS=1, SP=1)
+	print "DONE."
 
+	# PS tells the nested inference how many samples from the posterior you want
+	# and SP tells the nested inference how many particles to use
+	
+	####################################################################################
+	# EXAMPLE 1: we simply run the model - no display
+	####################################################################################
+	print "RUNNING SIMPLE FULL NESTED MODEL - DOES NOT DISPLAY ANYTHING..."
+	EX_1_SIMPLE_FULL_NESTED_MODEL(locs, poly_map, isovist, PS=1, SP=1, inf_type="IS")
+	print "DONE."
+
+	####################################################################################
+	# EXAMPLE 2: we run inference over the model - show display on plots
+	####################################################################################
+	# XXX: CHANGE PS AND SP for outer inference, and nested_PS, nested_SP for inner inference
+	# XXX: PS: samples from the posterior
+	# XXX: SP: particle count for the inference algorithms
+	print "RUNNING FULL NESTED MODEL EXAMPLE - DISPLAYS SINGLE PLOT OF OUTCOME..."
+	EX_2_INFERENCE_FULL_NESTED_MODEL(locs, poly_map, isovist, PS=1, SP=1, nested_PS=1, nested_SP=1, inf_type="IS")
+	print "DONE."
 	# you can look a lot at Adversarial_experiments.py
 	# ALSO at show_models.py (however it's messy because it invovles collaborative experiments.)
 

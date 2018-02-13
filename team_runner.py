@@ -109,6 +109,7 @@ class BasicRunnerPOM(object):
 		#------------- model agent's own movements (past and future) --------------
 		start_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="run_start" )
 		goal_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="run_goal" )
+
 		start = np.atleast_2d( self.locs[start_i] )
 		goal = np.atleast_2d( self.locs[goal_i] )
 
@@ -160,7 +161,7 @@ class BasicRunnerPOM(object):
 
 			same_goal_prob = .999*same_goal + .001*(1-same_goal)
 
-			runners_same_goal = Q.lflip( p=same_goal_prob, name="same_goal" ) 
+			runners_same_goal = Q.lflip( lp=same_goal_prob, name="same_goal" ) 
 
 			Q.keep("t_detected", t_detected)
 			Q.keep("my_plan", my_noisy_plan)
@@ -209,7 +210,7 @@ class BasicRunnerPOM(object):
 		
 
 class TOMRunnerPOM(object):
-	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1, model="collab"):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1, mode="collab"):
 		# field of view calculator
 		self.isovist = isovist
 		# possible start/goal locations
@@ -287,7 +288,7 @@ class TOMRunnerPOM(object):
 					detection_prob = -.01
 					t_detected.append(i)
 
-			future_detection = Q.lflip( p=detection_prob, name="detected_t_"+str(i) )
+			future_detection = Q.lflip( lp=detection_prob, name="detected_t_"+str(i) )
 			
 			Q.keep("intersections-t-"+str(i), intersections)
 
@@ -432,7 +433,7 @@ class TOMRunnerPOM(object):
 
 
 class TOMRunnerPOM(object):
-	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1, model="collab"):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1, mode="collab"):
 		# field of view calculator
 		self.isovist = isovist
 		# possible start/goal locations
@@ -487,9 +488,8 @@ class TOMRunnerPOM(object):
 					break
 		if self.mode == "advers":
 			# return the trace with least detections 
-			post_sample_traces, other_inferred_goal = self.adversarial_nested_inference(Q)
-			other_inferred_trace = trace
-			other_noisy_plan = trace["my_plan"]
+			nested_post_sample_traces, other_inferred_trace = self.adversarial_nested_inference(Q)
+			other_noisy_plan = other_inferred_trace["my_plan"]
 
 
 		#---------------- need to add RV of detection for each time step ----------
@@ -511,7 +511,7 @@ class TOMRunnerPOM(object):
 					detection_prob = -.01
 					t_detected.append(i)
 
-			future_detection = Q.lflip( p=detection_prob, name="detected_t_"+str(i) )
+			future_detection = Q.lflip( lp=detection_prob, name="detected_t_"+str(i) )
 			
 			Q.keep("intersections-t-"+str(i), intersections)
 
@@ -529,7 +529,7 @@ class TOMRunnerPOM(object):
 		Q.keep("other_plan", other_noisy_plan)
 		Q.keep("other_run_start", other_inferred_trace["run_start"])
 		Q.keep("other_run_goal", other_inferred_trace["run_goal"])
-		Q.keep("nested_post_samples", post_sample_traces)
+		Q.keep("nested_post_samples", nested_post_sample_traces)
 
 
 	# need to look at how I conditioned the previous model
@@ -578,13 +578,13 @@ class TOMRunnerPOM(object):
 			# 	q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(i)))
 			# 	q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(i)))
 
-		print q.cond_data_db
+		#print q.cond_data_db
 		# need to think about this a bit more - iris - 1.17.2018
 		# thought about it -- I think I want the path with the least number of detections
 		# since this nested bit is in the runner's perspective
-		trace =  self.get_trace_for_least_detected_path_PO(q)
+		post_sample_traces, trace =  self.get_trace_for_least_detected_path_PO(q)
 
-		return trace
+		return post_sample_traces, trace
 
 	def get_trace_for_least_detected_path_PO(self, Q):
 		post_sample_traces = self.run_inference(Q, post_samples=self.PS, samples=self.SP)

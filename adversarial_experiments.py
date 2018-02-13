@@ -290,7 +290,7 @@ def stealth_runner_given_chaser_locs(locs, poly_map, isovist, mode="advers", PS=
 
 
 
-def combine_all_into_heatmap(paths, other_paths, inf_type="IS", PS=10, SP=32, folder="unknown_inference/"):
+def combine_all_into_heatmap(paths, other_paths, poly_map=None, locs=None, inf_type="IS", PS=10, SP=32, folder="unknown_inference/"):
 	#print "runner path: ", no_hover_path
 	results = []
 	results.append( path_to_heatmap(paths) )
@@ -309,6 +309,7 @@ def combine_all_into_heatmap(paths, other_paths, inf_type="IS", PS=10, SP=32, fo
 
 	test_id = int(time.time())
 	plot_name="PO_forward_runs/"+folder+inf_type+"_advers-starts"+str(test_id)+"-"+str(PS)+"-Runner-"+str(SP)+".eps"
+	print "Plot name: ", plot_name
 	plt.savefig(plot_name, bbox_inches='tight')
 
 	results = []
@@ -327,6 +328,7 @@ def combine_all_into_heatmap(paths, other_paths, inf_type="IS", PS=10, SP=32, fo
 	cbar.ax.set_yticklabels(['0', '', ''])
 
 	plot_name="PO_forward_runs/"+folder+inf_type+"_advers_starts-"+str(test_id)+"-"+str(PS)+"-Chaser-"+str(SP)+".eps"
+	print "Plot name: ", plot_name
 	plt.savefig(plot_name, bbox_inches='tight')
 
 
