@@ -167,7 +167,7 @@ def Experiment_4_Smartest_Chaser_vs_Naive_Runner():
 
 # seperates the inference process from printing it on a heatmap
 # this lets me run several inferences to collect several paths and later map them
-def what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS"):
+def what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=10, SP=32, inf_type="IS", conditioned=True):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
 
@@ -182,13 +182,14 @@ def what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=10, SP=32,
 	t = 0
 	Q.condition("t", t)
 	
-	for i in xrange(t):
-		Q.condition("detected_t_"+str(i), False)
-	for i in xrange(t, 24):
-		Q.condition("detected_t_"+str(i), False)
-		# if len(smart_runner_path) > i:
-		# 	Q.condition("run_x_"+str(i), smart_runner_path[i][0])
-		# 	Q.condition("run_y_"+str(i), smart_runner_path[i][1])
+	if conditioned:
+		for i in xrange(t):
+			Q.condition("detected_t_"+str(i), False)
+		for i in xrange(t, 24):
+			Q.condition("detected_t_"+str(i), False)
+			# if len(smart_runner_path) > i:
+			# 	Q.condition("run_x_"+str(i), smart_runner_path[i][0])
+			# 	Q.condition("run_y_"+str(i), smart_runner_path[i][1])
 
 	#run_inference_MH
 	if inf_type == "IS":
@@ -478,9 +479,17 @@ if __name__ == '__main__':
 
 	paths = []
 	other_paths = []
-	_paths, _other_paths = what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=25, SP=128, inf_type="IS")
+
+	cond = True
+	P = 50
+	S = 128
+
+	_paths, _other_paths = what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=P, SP=S, inf_type="IS", conditioned=cond)
 	
 	paths +=  _paths
 	other_paths += _other_paths
-	combine_all_into_heatmap(_paths, _other_paths, PS=25, SP=128, folder="stealth/")
+	if cond:
+		combine_all_into_heatmap(_paths, _other_paths, poly_map=poly_map, locs=locs, PS=P, SP=S, folder="stealth-cond/")
+	else:
+		combine_all_into_heatmap(_paths, _other_paths, poly_map=poly_map, locs=locs, PS=P, SP=S, folder="stealth-uncond/")
 	# ---------------------------------------
