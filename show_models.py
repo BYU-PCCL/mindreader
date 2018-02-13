@@ -1754,7 +1754,7 @@ if __name__ == '__main__':
 	#-----------run TOM partially observable model ------
 	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
 	# tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	# 	nested_model=runner_model, ps=5, sp=32)
+	# 	nested_model=runner_model, ps=5, sp=32, mode="advers")
 	# #-- run single conditioned sample ---//
 	# run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=5, SP=32)
 
