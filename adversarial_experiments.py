@@ -171,7 +171,7 @@ def what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=10, SP=32,
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
 	Q = ProgramTrace(runner_model)
 
-	runner_start = 0
+	runner_start = 4
 	runner_goal = 8
 	Q.condition("run_start", runner_start)
 	Q.condition("run_goal", runner_goal)
@@ -476,9 +476,9 @@ if __name__ == '__main__':
 
 	paths = []
 	other_paths = []
-	_paths, _other_paths = what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=1, SP=1, inf_type="IS")
+	_paths, _other_paths = what_a_stealthy_runner(locs, poly_map, isovist, mode="advers", PS=25, SP=128, inf_type="IS")
 	
 	paths +=  _paths
 	other_paths += _other_paths
-	combine_all_into_heatmap(_paths, _other_paths, PS=1, SP=1, folder="stealth/")
+	combine_all_into_heatmap(_paths, _other_paths, PS=25, SP=128, folder="stealth/")
 	# ---------------------------------------
