@@ -104,7 +104,7 @@ def OUTERMOST_MODEL_EXAMPLE(locs, poly_map, isovist, PS=10, SP=32, inf_type="IS"
 
 	trace = post_sample_traces[0]
 
-	
+
 
 if __name__ == '__main__':
 	#plot("test.eps")
@@ -123,6 +123,17 @@ if __name__ == '__main__':
 	poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
 	isovist = i.Isovist( load_isovist_map() )
 
+
+
 	#plots the map and the locations if said so in the function
 	#plot(poly_map, plot_name="testing_advers.eps", locs=locs)
+
+
+
+	MIDDLEMOST_MODLE_EXAMPLE(locs, poly_map, isovist, PS=10, SP=32, inf_type="IS")
+
+	# you can look a lot at Adversarial_experiments.py
+	# ALSO at show_models.py (however it's messy because it invovles collaborative experiments.)
+
+
 
