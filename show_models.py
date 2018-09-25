@@ -10,7 +10,7 @@ import copy
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import cPickle
-from inference_alg import importance_sampling, metroplis_hastings, importance_resampling
+from inference_alg import importance_sampling, metroplis_hastings, importance_resampling, sequential_monte_carlo
 from program_trace import ProgramTrace
 from planner import * 
 from tqdm import tqdm
@@ -1609,16 +1609,16 @@ def run_advers_conditioned_tom_partial_model(runner_model, locs, poly_map, isovi
 	# 			p.set_array(np.array(colors))
 	# 			ax.add_collection(p)
 
-	if runner_model.inf_type == "IR":
-		nested_post_samples = trace["nested_post_samples"]
-		for nested_trace in nested_post_samples:
-			#print "HERE"
-			path = nested_trace["my_plan"]
-			for i in range(t-1, 39):
-				ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-					'red', linestyle="-", linewidth=1, label="Other's Plan", alpha=0.2)
-				if i in trace["t_detected"]:
-					ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+	# if runner_model.inf_type == "IR":
+	# 	nested_post_samples = trace["nested_post_samples"]
+	# 	for nested_trace in nested_post_samples:
+	# 		#print "HERE"
+	# 		path = nested_trace["my_plan"]
+	# 		for i in range(t-1, 39):
+	# 			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+	# 				'red', linestyle="-", linewidth=1, label="Other's Plan", alpha=0.2)
+	# 			if i in trace["t_detected"]:
+	# 				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 
 	path = trace["my_plan"]
 	t = trace["t"]
@@ -1855,7 +1855,6 @@ if __name__ == '__main__':
 	#---------- nested collab experiment ------------------------------
 	#tom_runner_model = TOMCollabRunner(seg_map=poly_map, locs=locs, isovist=isovist, nested_model=runner_model)
 	#two_agent_nested_goal_inference_while_moving(tom_runner_model, poly_map, locs)
-
 	# ---------- plot generative model of simple runner model
 	# Q = ProgramTrace(runner_model)
 	# Q.condition("run_start", 4)
@@ -1902,16 +1901,18 @@ if __name__ == '__main__':
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
 	# full model init
 	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	 	nested_model=runner_model, ps=0, sp=5, mode="advers", inf_type="IS") #inf_type="IR")
+	 	nested_model=runner_model, ps=0, sp=1, mode="advers", inf_type="IS") #inf_type="IR")
 
 	# #-- run single conditioned sample ---//
-	for i in xrange(1):
-		run_advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=60) #PS=5, SP=32)
+	advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=1) #PS=5, SP=32)
 
 	# cProfile.run('run_advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=5)')
 
 
-	
-
+	T = 1
+	model = tom_runner_model
+	conditions["init_run_x_"+str(t)] = Q.fetch("init_run_x_"+str(t))
+	conditions["init_run_y_"+str(t)] = Q.fetch("init_run_y_"+str(t))
+	sequential_monte_carlo(T, model, conditions, outer_particles, inner_particles)
 
 

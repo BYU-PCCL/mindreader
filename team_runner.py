@@ -99,9 +99,14 @@ class BasicRunnerPOM(object):
 		# add noise to the plan
 		other_noisy_plan = [other_plan[0]]
 		for i in xrange(1, len(other_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
-			loc_x = Q.randn( mu=other_plan[i][0], sigma=path_noise, name="other_run_x_"+str(i) )
-			loc_y = Q.randn( mu=other_plan[i][1], sigma=path_noise, name="other_run_y_"+str(i) )
-			loc_t = [loc_x, loc_y]
+			
+			if i < t:
+				# do not sample if already known to be true:
+				loc_t = [Q.fetch_condition(name="other_run_x_"+str(i)), Q.fetch_condition(name="other_run_y_"+str(i))]
+			else:
+				loc_x = Q.randn( mu=other_plan[i][0], sigma=path_noise, name="other_run_x_"+str(i) )
+				loc_y = Q.randn( mu=other_plan[i][1], sigma=path_noise, name="other_run_y_"+str(i) )
+				loc_t = [loc_x, loc_y]
 			other_noisy_plan.append(loc_t)
 		other_noisy_plan.append(other_plan[-1])
 		
@@ -173,7 +178,7 @@ class BasicRunnerPOM(object):
 			for i in xrange(0, PATH_LIMIT):
 				other_loc = scale_up(other_noisy_plan[i])
 				intersections = None
-				detection_prob = -.01 #-0.01 # these probabilities are assuming that the agent does not want to be seen.
+				detection_prob = .999
 				# face the runner if within certain radius
 				if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
 					# -----if other is looking for me
@@ -189,9 +194,9 @@ class BasicRunnerPOM(object):
 
 					#print will_I_be_seen
 					if will_I_be_seen:
-						detection_prob = -1000.0#-500.0
+						detection_prob = .001
 						t_detected.append(i)
-				future_detection = Q.clflip( lp=detection_prob, name="detected_t_"+str(i) )
+				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
 				
 				Q.keep("intersections-t-"+str(i), intersections)
 
@@ -243,13 +248,16 @@ class TOMRunnerPOM(object):
 		# plan using the latent variables of start and goal
 		my_plan = planner.run_rrt_opt( np.atleast_2d(start), 
 		np.atleast_2d(goal), rx1,ry1,rx2,ry2 )
-		
-		# add noise to the plan
+
 		my_noisy_plan = [my_plan[0]]
 		for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
-			loc_x = Q.randn( mu=my_plan[i][0], sigma=path_noise, name="init_run_x_"+str(i) )
-			loc_y = Q.randn( mu=my_plan[i][1], sigma=path_noise, name="init_run_y_"+str(i) )
-			loc_t = [loc_x, loc_y]
+			if i < t:
+				# do not sample if already known to be true
+				loc_t = [Q.fetch_condition("init_run_x_"+str(i)), Q.fetch_condition("init_run_y_"+str(i))]
+			else:
+				loc_x = Q.randn( mu=my_plan[i][0], sigma=path_noise, name="init_run_x_"+str(i) )
+				loc_y = Q.randn( mu=my_plan[i][1], sigma=path_noise, name="init_run_y_"+str(i) )
+				loc_t = [loc_x, loc_y]
 			my_noisy_plan.append(loc_t)
 		my_noisy_plan.append(my_plan[-1])
 		my_loc = my_noisy_plan[t]
@@ -268,74 +276,54 @@ class TOMRunnerPOM(object):
 
 		
 		if self.mode == "advers":
-			# if inference type == nested
-			if self.inf_type == "IR": # which might actually just be importance resampling
-				nested_post_sample_traces, other_inferred_trace = self.adversarial_importance_resampling(Q)
-				other_noisy_plan = other_inferred_trace["my_plan"]
-			# if self.inf_type == "nested_IS":
-			# 	pass
-			# if self.inf_type == "IR":
-			# 	Q, q_trace_vals = self.adversarial_importance_resampling(Q)
-			# 	other_noisy_plan = q_trace_vals["my_plan"]
-			if self.inf_type == "IS":
-				Q, q_trace_vals = self.adversarial_importance_sampling(Q)
-				other_noisy_plan = q_trace_vals["my_plan"]
+			L = len(q_samples)
+			for l in xrange(L):
+				q_l = q_samples[l]
+				q_score_l = q_scores[l]
+				Q_l = copy.deepcopy(Q)
+				other_noisy_plan = q_l["my_plan"]
+
+				#---------------- need to add RV of detection for each time step ----------
+				t_detected = []
+				PATH_LIMIT = 40
+				will_other_be_seen = False
+				for i in xrange(0, PATH_LIMIT):
+					cur_loc = scale_up(my_noisy_plan[i])
+					intersections = None
+					detection_prob = .001
+					# face the runner if within certain radius
+					if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
+						fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
+						intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
+					
+						# does the agent see other at time 't'
+						other_loc = scale_up(other_noisy_plan[i])
+						will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
+						if will_other_be_seen:
+							detection_prob = .999
+							t_detected.append(i)
+						
+					future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+					
+					Q_l.keep("intersections-t-"+str(i), intersections)
+
+				# add q trace to Q trace and add q's log likelihood to Q's
+				Q_l.add_trace(self, name="q_trace", trace=q_l, score=q_score_l)
+
+				Q_l.keep("t_detected", t_detected)
+				Q_l.keep("my_plan", my_noisy_plan)
+				Q_l.keep("other_plan", other_noisy_plan)
+				
+				Q_l.keep("other_run_start", q_l["run_start"])
+				Q_l.keep("other_run_goal", q_l["run_goal"])
+				all_Qs_scores[l](Q_l.get_score())
+
+		# we only need a trace that records the chaser's path
+		return Q, np.mean(Q_l)
 
 
 
-		#---------------- need to add RV of detection for each time step ----------
-		t_detected = []
-		PATH_LIMIT = 40
-		will_other_be_seen = False
-		for i in xrange(0, PATH_LIMIT):
-			cur_loc = scale_up(my_noisy_plan[i])
-			intersections = None
-			detection_prob = -1000.0
-			# face the runner if within certain radius
-			if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
-				fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
-				intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
-			
-				# does the agent see other at time 't'
-				other_loc = scale_up(other_noisy_plan[i])
-				will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
-				if will_other_be_seen:
-					detection_prob = -0.01
-					t_detected.append(i)
 
-			# This is a hack to control likelihoods
-			if i >= t:
-				future_detection = Q.lflip( lp=detection_prob, name="detected_t_"+str(i) )
-			else:
-				if will_other_be_seen:
-					detection_prob = -1000
-				else:
-					detection_prob = -0.01
-				future_detection = Q.clflip( lp=detection_prob, name="detected_t_"+str(i) )
-			
-			Q.keep("intersections-t-"+str(i), intersections)
-
-		if self.mode == "collab":
-			same_goal = 0
-			if goal_i == other_inferred_goal:
-				same_goal = 1
-			same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
-
-			runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) #TODO: update this lflip 1.19.2018
-
-		#print t_detected
-		Q.keep("t_detected", t_detected)
-		Q.keep("my_plan", my_noisy_plan)
-		Q.keep("other_plan", other_noisy_plan)
-		
-		#Q.keep("nested_post_samples", nested_post_sample_traces)
-
-		if self.inf_type == "IR":
-			Q.keep("other_run_start", other_inferred_trace["run_start"])
-			Q.keep("other_run_goal", other_inferred_trace["run_goal"])
-		if self.inf_type == "IS":
-			Q.keep("other_run_start", q_trace_vals["run_start"])
-			Q.keep("other_run_goal", q_trace_vals["run_goal"])
 
 
 
@@ -373,7 +361,7 @@ class TOMRunnerPOM(object):
 
 	# adversarial NESTED Importance RESAMPLING <-- maybe this is not nested after all?
 	def adversarial_importance_resampling(self, Q):
-		print ("----------------------------------inside adversarial_importance_resampling")
+		#print ("----------------------------------inside adversarial_importance_resampling")
 		Q, q = self.condition_middle_model(Q)
 		q_post_sample_traces, q_log_normalizer = importance_resampling(q, particles=self.SP, _print_inner=False)
 		#draw from uniform since all weights are the same (the average weight = log_normalizer)
@@ -392,10 +380,10 @@ class TOMRunnerPOM(object):
 	def adversarial_importance_sampling(self,Q):
 		Q, q = self.condition_middle_model(Q)
 		# run the chasers runner model forward
-		q_score, q_trace_vals = q.run_model()
+		q_samples, q_scores = q.run_model()
 		# add q trace to Q trace
-		Q.add_trace(name="chasers_runner_trace", trace=q_trace_vals, score=q_score)
-		return Q, q_trace_vals
+		#Q.add_trace(name="chasers_runner_trace", trace=q_trace_vals, score=q_score)
+		return q_samples, q_scores
 
 
 	def condition_middle_model(self, Q):
@@ -414,8 +402,8 @@ class TOMRunnerPOM(object):
 			q.condition("detected_t_"+str(i), False)
 			# assumes that the chaser's runner has a perfect knowledge of the chaser
 			if i < t:
-				q.condition("other_run_x_"+str(i), Q.fetch("init_run_x_"+str(i)))
-				q.condition("other_run_y_"+str(i), Q.fetch("init_run_y_"+str(i)))
+				q.condition("other_run_x_"+str(i), Q.fetch_condition("init_run_x_"+str(i)))
+				q.condition("other_run_y_"+str(i), Q.fetch_condition("init_run_y_"+str(i)))
 
 		return Q, q
 

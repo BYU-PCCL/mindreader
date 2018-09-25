@@ -76,6 +76,52 @@ from tqdm import tqdm
 #          1.43672550e-17,   2.70036699e-29,   2.27866598e-02,
 #          2.49886067e+01]))
 
+def add_conditions(conditions, Q, t):
+	# assume runner was not seen before (for next inference step)
+	conditions["detected_t_"+str(t)] = False
+	conditions["init_run_x_"+str(t)] = Q.fetch("init_run_x_"+str(t))
+	conditions["init_run_y_"+str(t)] = Q.fetch("init_run_y_"+str(t))
+	return conditions
+
+
+
+def sequential_monte_carlo(T, model, conditions, K):
+
+	Q_T = np.arange(T)
+	for t in xrange(T):
+		Q = ProgramTrace(model)
+
+		for name in conditions.keys:
+			Q.condition(name, conditions[name])
+
+		sampled_Q_ks = np.arange(K)
+		Q_k_scores = np.arange(K)
+		for k in xrange(K):
+			Q_k, score = Q.run_model()
+			Q_k_scores[k] = score
+			sampled_Q_ks[k] = Q_k
+
+		log_normalizer = logsumexp(Q_k_l_scores) - np.log(total_particles) 
+		weights = np.exp(Q_k_l_scores - log_normalizer - np.log(total_particles))
+		
+		resampled_index = np.random.choice([i for i in range(total_particles)], total_particles, replace=True, p=weights) 
+
+		sampled_Q = sampled_Q_k_ls[resampled_index]
+
+		conditions = add_conditions(conditions, sampled_Q, t)
+		Q_T[t] = sampled_Q
+
+	return Q_T
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -243,35 +289,13 @@ def importance_resampling(Q, particles, _print_inner=False, _print_outer=False):
 
 	
 	
-	#if _print_outer:
-	#print ("scores:", scores)
-	
-	max_score = np.max(scores)
-	scores = scores - max_score
 	log_normalizer = logsumexp(scores) - np.log(particles) # log avg weight
 	weights = np.exp(scores - log_normalizer - np.log(particles))
-	#print ("weights:", weights)
-	#print ("log_norm:", log_normalizer)
-
-	# add inner model's log norms to outer norm weights
-	if _print_outer:
-		tot_weights = np.array(weights) + np.array(inner_log_norms)
-		#print "inner_log_norms:", inner_log_norms
-		#print "after_add_log_weights:", tot_weights
-
-		# renorm
-		renorm_weights = np.exp(tot_weights - logsumexp(tot_weights))
-		#print "renorm_weights", renorm_weights
-		weights = renorm_weights
-
-	#weights = np.exp(scores - logsumexp(scores)) # overwrite
-
+	
 	chosen_index = np.random.choice([i for i in range(particles)], particles, replace=True, p=weights) 
 	#print "chosen_index", chosen_index
 	traces = np.array(traces)
 
-	if _print_outer:
-		print ("Detected Runner Times", outer_detect_totals)
 	return traces[chosen_index], log_normalizer
 
 
@@ -358,25 +382,11 @@ def importance_sampling(Q, particles):
 				str(PS)+"-S"+str(SP)+"-"+str(int(time.time()))+".eps")
 
 
+	#log_normalizer = logsumexp(scores) - np.log(particles) # log avg weight
+	#weights = np.exp(scores - log_normalizer - np.log(particles))
 
-	# get weight for score
-	#max_score = np.max(scores)
-	#scores = scores - max_score
-	max_score = np.max(scores)
-	scores = scores - max_score
-	print ("NEW SCORES:", scores)
-	log_normalizer = logsumexp(scores) - np.log(particles) # log avg weight
-	weights = np.exp(scores - log_normalizer - np.log(particles))
-	print( "NEW WEIGHTS:", weights)
-
-	chosen_index = np.random.choice([i for i in range(particles)], particles, replace=True, p=weights) 
-	traces = np.array(traces)
-
-
-
-	return traces[chosen_index], log_normalizer
-
-	#return traces[chosen_index]
+	# unnormalized since we are going to add it to the outer log likelihood
+	return traces, scores 
 
 
 def metroplis_hastings(Q, particles):
