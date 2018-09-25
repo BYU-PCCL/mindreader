@@ -34,6 +34,7 @@ def Update():
 		    return pygame.mouse.get_pos()
 
 
+# not sure why this is still here. Using one in RRT (where they y axis is not flipped)
 def load_polygons( fn="./paths.txt" ):
     bdata = []
     for x in open( fn ):
@@ -68,7 +69,7 @@ def load_isovist_map( fn="./paths.txt" ):
 		
 		polygonSegments.append(temp)
 
-		load_segs( fn="./paths.txt" )
+		#load_segs( fn="./paths.txt" )
 	dim = 500
 	return polygonSegments
 

@@ -22,6 +22,8 @@ class ProgramTrace(object):
 		self.rand = self.make_erp( rand_erp )
 		self.beta = self.make_erp( beta_erp )
 		self.lflip = self.make_erp( logflip_erp )
+		self.clflip = self.make_erp( complogflip_erp )
+		self.trnorm = self.make_erp( truncn_erp )
 
 	def set_obs(self, name=None, value=None):
 		self.obs[name] = value
@@ -31,8 +33,17 @@ class ProgramTrace(object):
 			return self.obs[name]
 		return None
 
+	def get_trace(self):
+		return self.trace
+
+	def get_score(self):
+		return self.cur_trace_score
+
 	def condition(self, name=None, value=None):
 		self.cond_data_db[name] = value
+
+	def get_cond_names(self):
+		return self.cond_data_db.keys()
 	
 	def set_model(self, model=None):
 		self.model = model
@@ -51,6 +62,14 @@ class ProgramTrace(object):
 			return self.trace[name]
 		return None
 
+	def keep_update(self, name=None, value=None):
+		self.keep(name=name, value=value)
+		self.cur_trace_score += value
+
+	def add_trace(self, name=None, trace=None, score=None):
+		self.keep(name=name, value=trace)
+		self.cur_trace_score += score
+
 	def make_erp( self, erp_class ):
 		return lambda *args, **kwargs: self.do_erp( erp_class, *args, **kwargs )
 
@@ -67,8 +86,9 @@ class ProgramTrace(object):
 			# only if it's constrained, add the log score 
 			# joint probability / proposal, cancel out prior sample scores
 			new_val = self.cond_data_db[ name ]
-			erp_score = erp_class.score( new_val, *args, **kwargs )
 
+			erp_score = erp_class.score( new_val, *args, **kwargs )
+			#print ("name:", name, "score:", erp_score)
 			# special case where I have to call the same random variable again
 			# specifically when the start and goal locations are the same
 			# if name in self.trace:

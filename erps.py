@@ -1,6 +1,7 @@
 import autograd.numpy as np
 import scipy.stats as ss
 import scipy.special as sp
+from scipy.stats import truncnorm
 
 from autograd.core import primitive
 
@@ -65,13 +66,53 @@ class randn_erp:
     
     @staticmethod
     def score( X, sz=(1,1), mu=0.0, sigma=1.0 ):
-        return np.sum( ss.norm.logpdf( X, loc=mu, scale=sigma ) )
+
+        # print "rand_n score:", np.sum( ss.norm.logpdf( X, loc=mu, scale=sigma ) )
+        # print "with mu:", mu, "and", "sigma:", sigma
+        # print "X: ", X
+        s = np.sum( ss.norm.logpdf( X, loc=mu, scale=sigma ) )
+        # hack to help bound the score for the paths
+        # if s < -20:
+            # return -20.0
+        return s
+
 
     @staticmethod    
     def new_var_params( sz=(1,1), mu=0.0, sigma=1.0 ):
         return { "sz": sz,
                  "mu": np.zeros( sz ),
                  "sigma": np.ones( sz ) }
+
+    @staticmethod
+    def project_param( name, val ):
+        return val
+
+# -------------------------------------------
+    
+class truncn_erp:
+    @staticmethod
+    def diffparms():
+        return ["mu","sigma", "a", "b"]
+
+    @staticmethod
+    def sample( sz=(1,1), mu=0.0, sigma=1.0, myclip_a=-1, myclip_b=1 ):
+        #return mu + sigma*np.random.randn( sz[0], sz[1] )
+        #return mu + sigma*np.random.randn()
+        a, b = (myclip_a - mu) / sigma, (myclip_b - mu) / sigma
+        return truncnorm.rvs(a, b) 
+    
+    @staticmethod
+    def score( X, sz=(1,1), mu=0.0, sigma=1.0, myclip_a=-1, myclip_b=1 ):
+        a, b = (myclip_a - mu) / sigma, (myclip_b - mu) / sigma
+        return truncnorm.logpdf(X, a, b)
+
+    @staticmethod    
+    def new_var_params( sz=(1,1), mu=0.0, sigma=1.0 ):
+        return { "sz": sz,
+                 "mu": np.zeros( sz ),
+                 "sigma": np.ones( sz ),
+                 "a": -1,
+                 "b": 1 }
 
     @staticmethod
     def project_param( name, val ):
@@ -178,6 +219,41 @@ class flip_erp:
         else:
             return val
 
+class complogflip_erp:
+    @staticmethod
+    def diffparms():
+        return ["lp"]
+
+    @staticmethod
+    def sample( sz=None, lp=-0.69 ):
+        lp = a2d( lp )
+        if sz == None:
+            sz = lp.shape
+        #print "lp=", lp
+        #print "sz=", sz
+        return np.random.rand( *sz ) < np.exp( lp )
+
+    @staticmethod
+    def score( X, sz=None, lp=-0.69 ):
+        epsilon = 1e-20
+        return np.sum( (1.0-X) * lp + (X)*np.log( 1.0 - np.exp(lp)) )
+
+    @staticmethod
+    def new_var_params( sz=None, lp=-0.69 ):
+        lp = a2d( lp )
+        if sz == None:
+            sz = lp.shape
+        return { "sz": sz,
+                 "lp": -0.69*np.ones( sz ) }
+
+    @staticmethod
+    def project_param( name, val ):
+        if name == 'lp':
+            val = a2d( val )
+            val[val>0.0] = 0.0
+            return val
+        else:
+            return val   
 
 class logflip_erp:
     @staticmethod

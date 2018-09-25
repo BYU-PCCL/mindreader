@@ -4,11 +4,13 @@ from my_rrt import *
 import isovist as i
 from random import randint
 import matplotlib
+from scipy.misc import logsumexp
+import copy
 
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import cPickle
-from inference_alg import importance_sampling, metroplis_hastings
+from inference_alg import importance_sampling, metroplis_hastings, importance_resampling
 from program_trace import ProgramTrace
 from planner import * 
 from tqdm import tqdm
@@ -472,13 +474,25 @@ def two_agent_goal_inference_while_moving(runner_model, poly_map, locs):
 
 
 
-def run_inference(trace, post_samples=16, samples=32):
+def run_inference_IS(trace, samples=32):
 	post_traces = []
-	for i in  tqdm(xrange(post_samples)):
-		#post_sample_trace = importance_sampling(trace, samples)
-		post_sample_trace = importance_sampling(trace, samples)
-		post_traces.append(post_sample_trace)
-	return post_traces
+	# for i in  tqdm(xrange(post_samples)):
+	# 	#post_sample_trace = importance_sampling(trace, samples)
+	# 	post_sample_trace = importance_sampling(trace, samples)
+	# 	post_traces.append(post_sample_trace)
+
+	post_traces, log_normalizer = importance_sampling(trace, samples)
+
+	chosen_index = np.random.randint(0,samples)
+	return post_traces, post_traces[chosen_index], log_normalizer
+
+
+def run_inference_IR(trace, samples=32):
+	post_sample_traces, log_normalizer = importance_resampling(trace, samples, _print_outer=True)
+
+	chosen_index = np.random.randint(0,samples)
+	return np.array(post_sample_traces), post_sample_traces[chosen_index], log_normalizer
+
 
 def run_inference_MH(trace, post_samples=16, samples=32):
 	post_traces = []
@@ -1437,7 +1451,7 @@ def run_unconditioned_basic_partial_model(locs, poly_map, isovist, mode="collab"
 	print "my_plan:", trace["my_plan"]
 	print "detected times:", trace["t_detected"]
 
-
+#assuming this is a collab version
 def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=1, SP=1):
 	Q = ProgramTrace(runner_model)
 
@@ -1490,7 +1504,6 @@ def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=
 
 	nested_post_samples = trace["nested_post_samples"]
 	for nested_trace in nested_post_samples:
-		print "HERE"
 		path = nested_trace["my_plan"]
 		for i in range(t-1, 39):
 			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
@@ -1545,12 +1558,124 @@ def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=
 	
 	print "time:", trace["t"]
 
+def run_advers_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=1, SP=1):
+	Q = ProgramTrace(runner_model)
+
+	Q.condition("init_run_start", 1)
+	Q.condition("init_run_goal", 8)
+	Q.set_obs("other_run_start", 8)
+	Q.set_obs("other_run_goal", 1)
+	#print "other_run_goal", Q.get_obs("other_run_goal")
+	#return
+	t = 5 #8
+	Q.condition("t", t)
+
+	my_plan = [[0.56599999999999995, 0.14600000000000002], [0.55556809280738129, 0.18721437976543853], [0.5445341110551255, 0.23050610975954094], [0.53610663650986889, 0.27570707994484339], [0.51838817809125204, 0.31364677053850654], [0.51518717782727763, 0.35497127647386223], [0.55530733907318341, 0.38068397671159959], [0.56603426039645688, 0.420586401074451], [0.57876353334580199, 0.46649009155864785], [0.5894309668616603, 0.50360276514056979]]
+	#other_plan = [[0.67500000000000004, 0.92500000000000004], [0.65595794760796733, 0.88364953074871666], [0.63593639118326906, 0.84460049053946695], [0.632454561514043, 0.80177855079821769], [0.62322367768018871, 0.76592206121988504], [0.61070805265174255, 0.72506794767846527], [0.58606327906428324, 0.68850497091510821], [0.56369666918811434, 0.65184792821656079], [0.53867971062239195, 0.61822274529712795], [0.51418992415138365, 0.57765462476393603]]
+	#detections = [False, False, False, False, False, False, False, True]
+	#detection_locs = {}
+	# just for thi scenario
+	for i in xrange(t):
+		Q.condition("detected_t_"+str(i), False)
+		Q.set_obs("detected_t_"+str(i), False)
+		
+		Q.condition("init_run_x_"+str(i), my_plan[i][0])
+		Q.condition("init_run_y_"+str(i), my_plan[i][1])
+	# condition future detections to be True
+	for i in xrange(t, 26):
+		Q.condition("detected_t_"+str(i), True)
+		Q.set_obs("detected_t_"+str(i), True)
+
+
+	if runner_model.inf_type == "IR":
+		post_sample_traces, trace, log_normalizer = run_inference_IR(Q, samples=SP)
+	if runner_model.inf_type =="IS":
+		post_sample_traces, trace , log_normalizer = run_inference_IS(Q, samples=SP)
+
+	fig, ax = setup_plot(poly_map, locs)
+
+	#print "timesteps detected = True:", trace["t_detected"]
+	# show field of view
+	# for i in trace["t_detected"]:
+	# 	intersections = trace["intersections-t-"+str(i)]
+	# 	# show last isovist
+	# 	if not intersections is None:
+	# 		intersections = np.asarray(intersections)
+	# 		intersections /= 500.0
+	# 		if not intersections.shape[0] == 0:
+	# 			patches = [ Polygon(intersections, True)]
+	# 			p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.2)
+	# 			colors = 100*np.random.rand(len(patches))
+	# 			p.set_array(np.array(colors))
+	# 			ax.add_collection(p)
+
+	if runner_model.inf_type == "IR":
+		nested_post_samples = trace["nested_post_samples"]
+		for nested_trace in nested_post_samples:
+			#print "HERE"
+			path = nested_trace["my_plan"]
+			for i in range(t-1, 39):
+				ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+					'red', linestyle="-", linewidth=1, label="Other's Plan", alpha=0.2)
+				if i in trace["t_detected"]:
+					ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	path = trace["my_plan"]
+	t = trace["t"]
+	for i in range(0, t-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+	for i in range(t-1, 39):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'grey', linestyle=":", linewidth=1)
+
+
+	# mark the runner at time t on its plan
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	path = trace["other_plan"]
+
+	for i in range(0, t-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'blue', linestyle="--", linewidth=1, label="Other's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='blue')
+		# else:
+		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+	# mark the runner at time t on its plan
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='blue')
+
+	for i in range(t, 39):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'purple', linestyle="--", linewidth=1, label="Other's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	
+
+	plt.figtext(0.92, 0.85, "Values", horizontalalignment='left', weight="bold") 
+	plt.figtext(0.92, 0.80, "A Start: " +str(trace["init_run_start"]), horizontalalignment='left') 
+	#plt.figtext(0.92, 0.75, "A Goal: " +str(trace["init_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.75, "B Start: " +str(trace["other_run_start"]), horizontalalignment='left')
+	#plt.figtext(0.92, 0.65, "B Goal: " +str(trace["other_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.70, "time step: " +str(trace["t"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.65, "A detected B count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
+	#close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/tom/tom_run_and_find-"+str(int(time.time()))+".eps")
+	plt.figtext(0.92, 0.60, "score:" + str(log_normalizer), horizontalalignment='left')
+		# 	
+	close_plot(fig, ax, 
+		plot_name="PO_forward_runs/conditioned/single_samples/tom/IS_tom_run_and_find-P"+
+		str(PS)+"-S"+str(SP)+"-"+str(int(time.time()))+".eps")
+	
+	
+
+
 def run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="advers"):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode = mode)
 	Q = ProgramTrace(runner_model)
 	#runner
 	Q.condition("run_start", 2)
-	Q.condition("run_goal", 9)
+	Q.condition("run_goal", 9) 
 	#chaser
 	Q.condition("other_run_start", 3)
 	Q.condition("other_run_goal", 9)
@@ -1672,6 +1797,7 @@ def plot_smart_runner_advers(locs, poly_map, isovist, mode="advers"):
 
 
 
+		
 if __name__ == '__main__':
 	#plot("test.eps")
 	
@@ -1762,12 +1888,30 @@ if __name__ == '__main__':
 	#	directory="tom_find_eachother", PS=5, SP=32)
 
 
+	###################################################################################
+	#	the original run ( chaser vs runner )
+	###################################################################################
+
+
+	import cProfile
+	import re
+	# -- IN PROGRESS
+	#-----------run TOM with nested importance sampling ------
 	
+	# the (inner) nested model
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
+	# full model init
+	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
+	 	nested_model=runner_model, ps=0, sp=5, mode="advers", inf_type="IS") #inf_type="IR")
+
+	# #-- run single conditioned sample ---//
+	for i in xrange(1):
+		run_advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=60) #PS=5, SP=32)
+
+	# cProfile.run('run_advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=5)')
 
 
-
-
-
+	
 
 
 
