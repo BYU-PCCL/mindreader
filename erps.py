@@ -187,7 +187,8 @@ class flip_erp:
             sz = p.shape
         #print "p=", p
         #print "sz=", sz
-        return np.random.rand( *sz ) < p
+        #return np.random.rand( *sz ) < p
+        return (np.random.rand( *sz ) < p)[0,0]
 
     @staticmethod
     def score( X, sz=None, p=0.5 ):

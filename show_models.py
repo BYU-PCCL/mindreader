@@ -10,7 +10,7 @@ import copy
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import cPickle
-from inference_alg import importance_sampling, metroplis_hastings, importance_resampling, sequential_monte_carlo
+from inference_alg import importance_sampling, metroplis_hastings, importance_resampling, sequential_monte_carlo, sequential_monte_carlo_par
 from program_trace import ProgramTrace
 from planner import * 
 from tqdm import tqdm
@@ -78,7 +78,7 @@ def setup_plot(poly_map, locs=None, scale=1):
 def close_plot(fig, ax, plot_name=None):
 	if plot_name is None:
 		plot_name = str(int(time.time()))+".eps"
-	print "plot_name:", plot_name
+	print ("plot_name:", plot_name)
 
 	ax.set_ylim(ymax = 1, ymin = 0)
 	ax.set_xlim(xmax = 1, xmin = 0)
@@ -243,10 +243,10 @@ def goal_inference_while_moving(runner_model, poly_map, locs):
 					'red', linestyle="--", linewidth=1, alpha = 0.2)
 
 		inferrred_goals.append(goal_list)
-		print "goal list:", goal_list
+		print ("goal list:", goal_list)
 		close_plot(fig, ax, "time/" + sim_id + "-post-samples-t-"+str(t)+".eps")
 
-	print "inferrred_goals:", inferrred_goals
+	print ("inferrred_goals:", inferrred_goals)
 	return inferrred_goals, sim_id
 
 
@@ -517,7 +517,7 @@ def line_plotting(inferrred_goals, sim_id, code="", directory="time"):
 			goal_prob = goal_cnt / float(total_num_inferences)
 			goal_probabilities[goal].append(goal_prob)
 
-	print "goal_probabilities", goal_probabilities
+	print ("goal_probabilities", goal_probabilities)
 
 	fig = plt.figure()
 	ax = fig.add_subplot(111)
@@ -1371,8 +1371,8 @@ def run_conditioned_basic_partial_model(locs, poly_map, isovist, mode="collab"):
 	
 	plt.figtext(0.5, 0.01, "Log Score: " +str(score), horizontalalignment='center') 
 	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/single_samples/run_and_avoid-"+str(int(time.time()))+".eps")
-	print "score:", score
-
+	print ("score:", score)
+	
 
 def run_unconditioned_basic_partial_model(locs, poly_map, isovist, mode="collab"):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode=mode)
@@ -1438,18 +1438,18 @@ def run_unconditioned_basic_partial_model(locs, poly_map, isovist, mode="collab"
 	plt.figtext(0.92, 0.55, "A detected B count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
 	close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/advers-"+str(int(time.time()))+".eps")
 
-	print "time:", trace["t"]
+	print ("time:", trace["t"])
 	# print "other_run_start:", trace["other_run_start"]
 	# print "other_run_goal:", trace["other_run_goal"]
 
-	print "run_start:", trace["run_start"]
-	print "run_goal:", trace["run_goal"]
-	print "score:", score
+	print ("run_start:", trace["run_start"])
+	print ("run_goal:", trace["run_goal"])
+	print ("score:", score)
 
 	#print "detected:", trace["detected"]
-	print "other_plan:", trace["other_plan"]
-	print "my_plan:", trace["my_plan"]
-	print "detected times:", trace["t_detected"]
+	print ("other_plan:", trace["other_plan"])
+	print ("my_plan:", trace["my_plan"])
+	print ("detected times:", trace["t_detected"])
 
 #assuming this is a collab version
 def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=1, SP=1):
@@ -1488,7 +1488,7 @@ def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=
 
 	fig, ax = setup_plot(poly_map, locs)
 
-	print trace["t_detected"]
+	print (trace["t_detected"])
 	# for i in trace["t_detected"]:
 	# 	intersections = trace["intersections-t-"+str(i)]
 	# 	# show last isovist
@@ -1556,7 +1556,7 @@ def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=
 		plot_name="PO_forward_runs/conditioned/single_samples/tom/IS_tom_run_and_find-P"+
 		str(PS)+"-S"+str(SP)+"-"+str(int(time.time()))+".eps")
 	
-	print "time:", trace["t"]
+	print ("time:", trace["t"])
 
 def run_advers_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=1, SP=1):
 	Q = ProgramTrace(runner_model)
@@ -1743,7 +1743,7 @@ def run_advers_conditioned_basic_partial_model(locs, poly_map, isovist, mode="ad
 	
 	plt.figtext(0.5, 0.01, "Log Score: " +str(score), horizontalalignment='center') 
 	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/single_samples/advers-"+str(int(time.time()))+".eps")
-	print "score:", score
+	print ("score:", score)
 
 def plot_smart_runner_advers(locs, poly_map, isovist, mode="advers"):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode = mode)
@@ -1908,8 +1908,10 @@ if __name__ == '__main__':
 	conditions["detected_t_0"] = False
 
 	observations["other_run_start"] = 8
-	K=8
-	L=16
+	observations["init_run_x_0"] = locs[1][0]
+	observations["init_run_y_0"] = locs[1][1]
+	K=16
+	L=32
 
 	# the (inner) nested model
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
@@ -1918,9 +1920,15 @@ if __name__ == '__main__':
 	 	nested_model=runner_model, inner_samples=L, mode="advers") #inf_type="IR")
 	model = tom_runner_model
 
-	Q_T, detection_probabilities = sequential_monte_carlo(T, model, conditions, observations, K)
+	#Q_T, detection_probabilities = sequential_monte_carlo(T, model, conditions, observations, K)
+	#print "detection probabilities:", detection_probabilities
 
-	print "detection probabilities:", detection_probabilities
+	Q_T, detection_probabilities = sequential_monte_carlo_par(T, model, conditions, observations, K)
+
+
+	#cProfile.run("sequential_monte_carlo(T, model, conditions, observations, K)")
+
+	
 	# #-- run single conditioned sample ---//
 	#advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=1) #PS=5, SP=32)
 

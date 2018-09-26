@@ -103,7 +103,7 @@ class BasicRunnerPOM(object):
 			
 			if i < t:
 				# do not sample if already known to be true:
-				loc_t = [Q.fetch_condition(name="other_run_x_"+str(i)), Q.fetch_condition(name="other_run_y_"+str(i))]
+				loc_t = [Q.get_obs(name="other_run_x_"+str(i)), Q.get_obs(name="other_run_y_"+str(i))]
 			else:
 				loc_x = Q.randn( mu=other_plan[i][0], sigma=path_noise, name="other_run_x_"+str(i) )
 				loc_y = Q.randn( mu=other_plan[i][1], sigma=path_noise, name="other_run_y_"+str(i) )
@@ -230,6 +230,11 @@ class TOMRunnerPOM(object):
 		self.nested_model = nested_model # want to add parallel processessing here
 		self.L = inner_samples
 		self.mode = mode # advers for adversarial , collab for collaborative
+
+		self.directory = None
+
+	def set_dir(self, directory):
+		self.directory = directory
 		
 
 	# run the model inside this function
@@ -247,20 +252,23 @@ class TOMRunnerPOM(object):
 		goal = np.atleast_2d( self.locs[goal_i] )
 
 		# plan using the latent variables of start and goal
-		my_plan = planner.run_rrt_opt( start, goal, rx1,ry1,rx2,ry2 )
-
-		my_noisy_plan = [my_plan[0]]
+		prev_true_loc =  np.atleast_2d([Q.get_obs("init_run_x_"+str(t-1)), Q.get_obs("init_run_y_"+str(t-1))])
+		my_plan = planner.run_rrt_opt( prev_true_loc, goal, rx1,ry1,rx2,ry2 )
+		u = 1
+		my_noisy_plan = [self.locs[start_i]]
 		for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
 			if i < t:
 				# do not sample if already known to be true
-				loc_t = [Q.fetch_condition("init_run_x_"+str(i)), Q.fetch_condition("init_run_y_"+str(i))]
+				loc_t = [Q.get_obs("init_run_x_"+str(i)), Q.get_obs("init_run_y_"+str(i))]
 			else:
-				loc_x = Q.randn( mu=my_plan[i][0], sigma=path_noise, name="init_run_x_"+str(i) )
-				loc_y = Q.randn( mu=my_plan[i][1], sigma=path_noise, name="init_run_y_"+str(i) )
+				loc_x = Q.randn( mu=my_plan[u][0], sigma=path_noise, name="init_run_x_"+str(i) )
+				loc_y = Q.randn( mu=my_plan[u][1], sigma=path_noise, name="init_run_y_"+str(i) )
 				loc_t = [loc_x, loc_y]
+				u += 1
 			my_noisy_plan.append(loc_t)
 		my_noisy_plan.append(my_plan[-1])
 		my_loc = my_noisy_plan[t]
+		assert (len(my_noisy_plan) == 30)
 
 		#---------------- do inference --------------------------------------------
 		other_noisy_plan = None
@@ -280,12 +288,12 @@ class TOMRunnerPOM(object):
 			other_plans = []
 			L = self.L
 			all_Qs_scores = np.arange(L)
-			for l in tqdm(xrange(L)):
+			for l in xrange(L):
 				
 				q = self.condition_middle_model(Q)
 				Q_l = copy.deepcopy(Q)
 				q_score_l, q_l = q.run_model()
-				plot_middlemost_sample(q_l, q_score_l)
+				#plot_middlemost_sample(q_l, q_score_l, self.directory)
 				other_noisy_plan = q_l["my_plan"]
 
 				#---------------- need to add RV of detection for each time step ----------
@@ -307,7 +315,7 @@ class TOMRunnerPOM(object):
 						if will_other_be_seen:
 							detection_prob = .999
 							t_detected.append(i)
-						
+					
 					future_detection = Q_l.flip( p=detection_prob, name="detected_t_"+str(i) )
 					
 					Q_l.keep("intersections-t-"+str(i), intersections)
@@ -405,8 +413,8 @@ class TOMRunnerPOM(object):
 			q.condition("detected_t_"+str(i), False)
 			# assumes that the chaser's runner has a perfect knowledge of the chaser
 			if i < t:
-				q.condition("other_run_x_"+str(i), Q.fetch_condition("init_run_x_"+str(i)))
-				q.condition("other_run_y_"+str(i), Q.fetch_condition("init_run_y_"+str(i)))
+				q.set_obs("other_run_x_"+str(i), Q.get_obs("init_run_x_"+str(i)))
+				q.set_obs("other_run_y_"+str(i), Q.get_obs("init_run_y_"+str(i)))
 
 		return q
 

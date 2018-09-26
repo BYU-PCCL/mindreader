@@ -37,12 +37,14 @@ def close_plot(fig, ax, plot_name=None):
 
 	ax.set_ylim(ymax = 1, ymin = 0)
 	ax.set_xlim(xmax = 1, xmin = 0)
+	ax.get_xaxis().set_visible(False)
+	ax.get_yaxis().set_visible(False)
 
 	#plt.show()
 	fig.savefig(plot_name, bbox_inches='tight')
 
 
-def plot_outermost_sample(trace, score):
+def plot_outermost_sample(trace, score, directory, k):
 	
 	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
 	[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
@@ -55,18 +57,17 @@ def plot_outermost_sample(trace, score):
 	t = trace["t"]
 	for i in range(0, t-1):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-			'red', linestyle=":", linewidth=1, label="Agent's Plan")
-		# else:
-		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
-	# mark the runner at time t on its plan
-	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='orange')
+			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+		ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='orange')
 
 	for i in range(t-1, 29):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
-		
+			'grey', linestyle=":", linewidth=1, label="Agent's Plan")
+		ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='orange')
+	
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='black')
 	# mark the runner at time t on its plan
-	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='orange')
+	
 
 	path = trace["other_plan"]
 
@@ -78,11 +79,11 @@ def plot_outermost_sample(trace, score):
 		detections = all_t_detected[j]
 		total_detections += len(detections)
 		# mark the runner at time t on its plan
-		ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='blue')
+		#ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='blue')
 
 		for i in range(0, 29):
-			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-				'grey', linestyle="--", linewidth=1, label="Other's Plan")
+			# ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			# 	'lightgrey', linestyle="--", linewidth=1, label="Other's Plan")
 			if i in detections:
 				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 		
@@ -98,7 +99,7 @@ def plot_outermost_sample(trace, score):
 	plt.figtext(0.92, 0.60, "score:" + str(score), horizontalalignment='left')
 	#close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/tom/tom_run_and_find-"+str(int(time.time()))+".eps")
 	close_plot(fig, ax, 
-		plot_name="PO_forward_runs/conditioned/single_samples/tom/outer-most_model-"+str(int(time.time()))+".eps")
+		plot_name=directory+"/t-"+str(trace["t"])+"-outermost-"+"k-"+str(k)+".eps")
 
 
 
@@ -107,7 +108,7 @@ def plot_outermost_sample(trace, score):
 
 
 
-def plot_middlemost_sample(trace, score):
+def plot_middlemost_sample(trace, score, directory):
 	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
 	[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
 	[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
@@ -137,6 +138,7 @@ def plot_middlemost_sample(trace, score):
 	for i in range(0, t-1):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'orange', linestyle="--", linewidth=1, label="Other's Plan")
+		ax.scatter( path[i][0],  path[i][1] , s = 70, facecolors='none', edgecolors='orange')
 		# else:
 		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
 	# mark the runner at time t on its plan
@@ -145,6 +147,8 @@ def plot_middlemost_sample(trace, score):
 	for i in range(t-1, 29):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'grey', linestyle="--", linewidth=1, label="Other's Plan")
+		ax.scatter( path[i][0],  path[i][1] , s = 70, facecolors='none', edgecolors='orange')
+
 		
 	
 
@@ -158,7 +162,7 @@ def plot_middlemost_sample(trace, score):
 	plt.figtext(0.92, 0.60, "score:" + str(score), horizontalalignment='left')
 	#close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/tom/tom_run_and_find-"+str(int(time.time()))+".eps")
 	close_plot(fig, ax, 
-		plot_name="PO_forward_runs/conditioned/single_samples/tom/middle-most_model-"+str(int(time.time()))+".eps")
+		plot_name=directory+"/t-"+str(trace["t"])+"-middlemost-"+str(int(time.time()))+".eps")
 
 
 def InitScreen(xdim, ydim):
@@ -399,51 +403,51 @@ def single_smart_intruder_rrt_sarg( x ):
                 np.random.seed( os.getpid() )
         return single_smart_intruder_rrt( x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7] )
 
-def single_smart_intruder_rrt(start, goal, X1, Y1, X2, Y2, isovist, X=8):
-        rrt = run_rrt( a2d(scale_down(start)), a2d(scale_down(goal)), X1, Y1, X2, Y2)
+# def single_smart_intruder_rrt(start, goal, X1, Y1, X2, Y2, isovist, X=8):
+#         rrt = run_rrt( a2d(scale_down(start)), a2d(scale_down(goal)), X1, Y1, X2, Y2)
 
-        try:
-            chosen_steps = rand.sample( range(1, len(rrt)), np.minimum(X,len(rrt)-2) )
-        except:
-            return( rrt, 0 )
+#         try:
+#             chosen_steps = rand.sample( range(1, len(rrt)), np.minimum(X,len(rrt)-2) )
+#         except:
+#             return( rrt, 0 )
 
-        total_isovist_area = 0
-        for j in chosen_steps:
-            loc = rrt[j]
-            prev = rrt[j-1]
-            intersections = isovist.GetIsovistIntersections(loc, direction(loc, prev), full_iso=True)
-            total_isovist_area += isovist_area(intersections) 
-        return( rrt, total_isovist_area )
+#         total_isovist_area = 0
+#         for j in chosen_steps:
+#             loc = rrt[j]
+#             prev = rrt[j-1]
+#             intersections = isovist.GetIsovistIntersections(loc, direction(loc, prev), full_iso=True)
+#             total_isovist_area += isovist_area(intersections) 
+#         return( rrt, total_isovist_area )
 
-# XXX hacked out the kwargs because they're not memoize compatible...
-@memoize
-def smart_intruder_rrt_par(start, goal, X1, Y1, X2, Y2, isovist, N, X):
-        areas = []
-        rrts = []
+# # XXX hacked out the kwargs because they're not memoize compatible...
+# @memoize
+# def smart_intruder_rrt_par(start, goal, X1, Y1, X2, Y2, isovist, N, X):
+# 	areas = []
+# 	rrts = []
 
-#        p = Pool( 12 )
-        p = Pool( 6 )
-        # we do all of this because Pool.map pickles its arguments, and you can't pickle a lambda...
-        params = ((start, goal, X1, Y1, X2, Y2, isovist, X),) * N
-        results = p.map( single_smart_intruder_rrt_sarg, params )
+# 	#        p = Pool( 12 )
+# 	p = Pool( 6 )
+# 	# we do all of this because Pool.map pickles its arguments, and you can't pickle a lambda...
+# 	params = ((start, goal, X1, Y1, X2, Y2, isovist, X),) * N
+# 	results = p.map( single_smart_intruder_rrt_sarg, params )
 
-	for tmp_retval in results:
-                rrts.append( tmp_retval[0] )
-                areas.append( tmp_retval[1] )
-	minindex = np.argmin(areas)
-	return rrts[minindex]
+# 	for tmp_retval in results:
+# 		rrts.append( tmp_retval[0] )
+# 		areas.append( tmp_retval[1] )
+# 	minindex = np.argmin(areas)
+# 	return rrts[minindex]
 
-# XXX deprecated in favor of the parallel version above
-def smart_intruder_rrt(start, goal, X1, Y1, X2, Y2, isovist, N=30, X=8):
-	#GENERATE 30 RRTs:
-        areas = []
-        rrts = []
-	for i in tqdm(xrange(N)):
-                tmp_retval = single_smart_intruder_rrt(start, goal, X1, Y1, X2, Y2, isovist, X )
-                rrts.append( tmp_retval[0] )
-                areas.append( tmp_retval[1] )
-	minindex = np.argmin(areas)
-	return rrts[minindex]
+# # XXX deprecated in favor of the parallel version above
+# def smart_intruder_rrt(start, goal, X1, Y1, X2, Y2, isovist, N=30, X=8):
+# 	#GENERATE 30 RRTs:
+#         areas = []
+#         rrts = []
+# 	for i in tqdm(xrange(N)):
+# 		tmp_retval = single_smart_intruder_rrt(start, goal, X1, Y1, X2, Y2, isovist, X )
+# 		rrts.append( tmp_retval[0] )
+# 		areas.append( tmp_retval[1] )
+# 	minindex = np.argmin(areas)
+# 	return rrts[minindex]
 
 
 def travel(curr_i, path, amt=10, bound=30):

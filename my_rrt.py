@@ -177,6 +177,6 @@ if __name__ == '__main__':
     goal_pt = np.atleast_2d( [0.9,0.9] )
 
     path = run_rrt_poly( start_pt, goal_pt, polygons, plot=True)
-    print "path:", path
+    print ("path:", path)
 
 

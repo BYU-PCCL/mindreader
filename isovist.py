@@ -147,7 +147,7 @@ class Isovist:
         #     if direction[1] <= 1:
         #         direction = (direction[0]*500, direction[1]*500)
     	#Setting customized UAV Field of vision
-    	self.UAVFieldOfVision =  UAVFieldOfVision
+        self.UAVFieldOfVision =  UAVFieldOfVision
         self.fieldOfVision = math.radians(self.UAVFieldOfVision/2.0)
 
         self.agentLocation = agentLocation
@@ -550,7 +550,7 @@ def setup_plot(poly_map, locs=None, scale=1):
 def close_plot(fig, ax, plot_name=None):
     if plot_name is None:
         plot_name = str(int(time.time()))+".eps"
-    print "plot_name:", plot_name
+    #print "plot_name:", plot_name
 
     ax.set_ylim(ymax = 1, ymin = 0)
     ax.set_xlim(xmax = 1, xmin = 0)
