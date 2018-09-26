@@ -76,53 +76,64 @@ from tqdm import tqdm
 #          1.43672550e-17,   2.70036699e-29,   2.27866598e-02,
 #          2.49886067e+01]))
 
-def add_conditions(conditions, Q, t):
+def update_conditions(conditions, trace, t):
 	# assume runner was not seen before (for next inference step)
 	conditions["detected_t_"+str(t)] = False
-	conditions["init_run_x_"+str(t)] = Q.fetch("init_run_x_"+str(t))
-	conditions["init_run_y_"+str(t)] = Q.fetch("init_run_y_"+str(t))
+	conditions["init_run_x_"+str(t)] = trace["init_run_x_"+str(t)]
+	conditions["init_run_y_"+str(t)] = trace["init_run_y_"+str(t)]
+	conditions["t"] = conditions["t"]+1
 	return conditions
 
+def get_prob_detection_t(trace, K):
+	all_t_detected = trace["t_detected"]
+	total_detections = 0
+	for j in xrange(len(all_t_detected)):
+		detections = all_t_detected[j]
+		total_detections += len(detections)
+	avg_detections = total_detections/float(K)
+	total_possible_detections = K * 30 # 30 time steps
+	return avg_detections/total_possible_detections
 
+from methods import plot_outermost_sample
 
-def sequential_monte_carlo(T, model, conditions, K):
+def sequential_monte_carlo(T, model, conditions, observations, K):
 
-	Q_T = np.arange(T)
-	for t in xrange(T):
+	#file_id = str(int(time.time()))
+	detection_probabilities = [0.0]
+	Q_T = []
+	for t in tqdm(xrange(1, T)):
 		Q = ProgramTrace(model)
 
-		for name in conditions.keys:
+		for name in observations.keys():
+			Q.set_obs(name, observations[name])
+		for name in conditions.keys():
 			Q.condition(name, conditions[name])
 
-		sampled_Q_ks = np.arange(K)
+		sampled_Q_ks = []
 		Q_k_scores = np.arange(K)
 		for k in xrange(K):
-			Q_k, score = Q.run_model()
-			Q_k_scores[k] = score
-			sampled_Q_ks[k] = Q_k
+			score, Q_trace_k = Q.run_model()
+			Q_k_scores[k] = Q.fetch("mean")
+			plot_outermost_sample(Q_trace_k, Q_k_scores[k])
+			sampled_Q_ks.append(Q_trace_k)
+		sampled_Q_ks = np.array(sampled_Q_ks)
 
-		log_normalizer = logsumexp(Q_k_l_scores) - np.log(total_particles) 
-		weights = np.exp(Q_k_l_scores - log_normalizer - np.log(total_particles))
+		log_normalizer = logsumexp(Q_k_scores) - np.log(K) 
+		weights = np.exp(Q_k_scores - log_normalizer - np.log(K))
+		print ("Chaser weights:", weights)
 		
-		resampled_index = np.random.choice([i for i in range(total_particles)], total_particles, replace=True, p=weights) 
+		resampled_indexes = np.random.choice([i for i in range(K)], K, replace=True, p=weights) 
 
-		sampled_Q = sampled_Q_k_ls[resampled_index]
+		resampled_Qs = sampled_Q_ks[resampled_indexes]
 
-		conditions = add_conditions(conditions, sampled_Q, t)
-		Q_T[t] = sampled_Q
+		sampled_Q_trace = resampled_Qs[np.random.randint(0,K)]
+		
+		Q_T.append(sampled_Q_trace)
+		conditions = update_conditions(conditions, sampled_Q_trace, t)
+		detection_probabilities.append(get_prob_detection_t(sampled_Q_trace, K))
+		print ("Detection Probability", detection_probabilities[t])
 
-	return Q_T
-
-
-
-
-
-
-
-
-
-
-
+	return Q_T, detection_probabilities
 
 
 def importance_resampling(Q, particles, _print_inner=False, _print_outer=False):

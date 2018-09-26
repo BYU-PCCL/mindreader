@@ -1897,22 +1897,34 @@ if __name__ == '__main__':
 	# -- IN PROGRESS
 	#-----------run TOM with nested importance sampling ------
 	
+	T = 30
+	conditions = {}
+	observations = {}
+	conditions["init_run_start"] = 1
+	conditions["other_run_start"] = 8
+	conditions["t"] = 1
+	#conditions["init_run_x_0"] = locs[1][0]
+	#conditions["init_run_y_0"] = locs[1][1]
+	conditions["detected_t_0"] = False
+
+	observations["other_run_start"] = 8
+	K=8
+	L=16
+
 	# the (inner) nested model
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
 	# full model init
 	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	 	nested_model=runner_model, ps=0, sp=1, mode="advers", inf_type="IS") #inf_type="IR")
+	 	nested_model=runner_model, inner_samples=L, mode="advers") #inf_type="IR")
+	model = tom_runner_model
 
+	Q_T, detection_probabilities = sequential_monte_carlo(T, model, conditions, observations, K)
+
+	print "detection probabilities:", detection_probabilities
 	# #-- run single conditioned sample ---//
-	advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=1) #PS=5, SP=32)
+	#advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=1) #PS=5, SP=32)
 
 	# cProfile.run('run_advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=5)')
 
-
-	T = 1
-	model = tom_runner_model
-	conditions["init_run_x_"+str(t)] = Q.fetch("init_run_x_"+str(t))
-	conditions["init_run_y_"+str(t)] = Q.fetch("init_run_y_"+str(t))
-	sequential_monte_carlo(T, model, conditions, outer_particles, inner_particles)
 
 

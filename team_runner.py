@@ -1,5 +1,6 @@
 import program_trace as program_trace
 from methods import load_isovist_map, scale_up, direction, dist, load_segs, point_in_obstacle, get_clear_goal
+from methods import plot_middlemost_sample
 from my_rrt import *
 import copy
 from scipy.misc import logsumexp
@@ -82,7 +83,7 @@ class BasicRunnerPOM(object):
 	def run(self, Q):
 		self.run_basic_partial(Q)
 
-	def run_basic_partial(self, Q, path_noise=0.005):
+	def run_basic_partial(self, Q, path_noise=0.003):
 		rx1,ry1,rx2,ry2 = self.seg_map
 		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
@@ -178,7 +179,7 @@ class BasicRunnerPOM(object):
 			for i in xrange(0, PATH_LIMIT):
 				other_loc = scale_up(other_noisy_plan[i])
 				intersections = None
-				detection_prob = .999
+				detection_prob = .001
 				# face the runner if within certain radius
 				if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
 					# -----if other is looking for me
@@ -194,7 +195,7 @@ class BasicRunnerPOM(object):
 
 					#print will_I_be_seen
 					if will_I_be_seen:
-						detection_prob = .001
+						detection_prob = .999
 						t_detected.append(i)
 				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
 				
@@ -216,7 +217,7 @@ class BasicRunnerPOM(object):
 		
 
 class TOMRunnerPOM(object):
-	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1, mode="collab", inf_type="IR"):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, inner_samples=1, mode="collab"):
 		# field of view calculator
 		self.isovist = isovist
 		# possible start/goal locations
@@ -225,17 +226,17 @@ class TOMRunnerPOM(object):
 		# map
 		self.seg_map = seg_map
 		rx1,ry1,rx2,ry2 = seg_map
-		self.nested_model = nested_model
-		self.PS = ps
-		self.SP = sp
+		
+		self.nested_model = nested_model # want to add parallel processessing here
+		self.L = inner_samples
 		self.mode = mode # advers for adversarial , collab for collaborative
-		self.inf_type = inf_type # nested/flat inference type
+		
 
 	# run the model inside this function
 	def run(self, Q):
 		self.run_tom_partial(Q)
 
-	def run_tom_partial(self, Q, path_noise=0.005):
+	def run_tom_partial(self, Q, path_noise=0.003):
 		rx1,ry1,rx2,ry2 = self.seg_map
 		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
@@ -246,8 +247,7 @@ class TOMRunnerPOM(object):
 		goal = np.atleast_2d( self.locs[goal_i] )
 
 		# plan using the latent variables of start and goal
-		my_plan = planner.run_rrt_opt( np.atleast_2d(start), 
-		np.atleast_2d(goal), rx1,ry1,rx2,ry2 )
+		my_plan = planner.run_rrt_opt( start, goal, rx1,ry1,rx2,ry2 )
 
 		my_noisy_plan = [my_plan[0]]
 		for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
@@ -276,16 +276,21 @@ class TOMRunnerPOM(object):
 
 		
 		if self.mode == "advers":
-			L = len(q_samples)
-			for l in xrange(L):
-				q_l = q_samples[l]
-				q_score_l = q_scores[l]
+			all_t_detected = []
+			other_plans = []
+			L = self.L
+			all_Qs_scores = np.arange(L)
+			for l in tqdm(xrange(L)):
+				
+				q = self.condition_middle_model(Q)
 				Q_l = copy.deepcopy(Q)
+				q_score_l, q_l = q.run_model()
+				plot_middlemost_sample(q_l, q_score_l)
 				other_noisy_plan = q_l["my_plan"]
 
 				#---------------- need to add RV of detection for each time step ----------
 				t_detected = []
-				PATH_LIMIT = 40
+				PATH_LIMIT = 30
 				will_other_be_seen = False
 				for i in xrange(0, PATH_LIMIT):
 					cur_loc = scale_up(my_noisy_plan[i])
@@ -303,30 +308,28 @@ class TOMRunnerPOM(object):
 							detection_prob = .999
 							t_detected.append(i)
 						
-					future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+					future_detection = Q_l.flip( p=detection_prob, name="detected_t_"+str(i) )
 					
 					Q_l.keep("intersections-t-"+str(i), intersections)
 
+				
 				# add q trace to Q trace and add q's log likelihood to Q's
-				Q_l.add_trace(self, name="q_trace", trace=q_l, score=q_score_l)
+				Q_l.add_trace(name="q_trace", trace=q_l, score=q_score_l)
 
 				Q_l.keep("t_detected", t_detected)
+				all_t_detected.append(t_detected)
 				Q_l.keep("my_plan", my_noisy_plan)
 				Q_l.keep("other_plan", other_noisy_plan)
+				other_plans.append(other_noisy_plan)
 				
 				Q_l.keep("other_run_start", q_l["run_start"])
 				Q_l.keep("other_run_goal", q_l["run_goal"])
-				all_Qs_scores[l](Q_l.get_score())
+				all_Qs_scores[l] = Q_l.get_score()
 
-		# we only need a trace that records the chaser's path
-		return Q, np.mean(Q_l)
-
-
-
-
-
-
-
+		Q.keep("mean", np.mean(all_Qs_scores))
+		Q.keep("my_plan", my_noisy_plan)
+		Q.keep("t_detected", all_t_detected)
+		Q.keep("other_plan", other_plans)
 
 
 	# need to look at how I conditioned the previous model
@@ -391,13 +394,13 @@ class TOMRunnerPOM(object):
 		q = ProgramTrace(self.nested_model)
 		q.condition("other_run_start", Q.fetch("init_run_start"))
 		#XXX just for testing purposes XXX remove in real simulation
-		q.condition("other_run_goal", Q.fetch("init_run_goal"))
+		#q.condition("other_run_goal", Q.fetch("init_run_goal"))
 		q.condition("t", Q.fetch("t")) 
 		q.condition("run_start", Q.get_obs("other_run_start"))
 		#XXX just for testing purposes XXX remove in real simulation
-		q.condition("run_goal", Q.get_obs("other_run_goal"))
+		#q.condition("run_goal", Q.get_obs("other_run_goal"))
 
-		for i in xrange(30):
+		for i in xrange(1, 30):
 			# the runner wants all detections to be False
 			q.condition("detected_t_"+str(i), False)
 			# assumes that the chaser's runner has a perfect knowledge of the chaser
@@ -405,7 +408,7 @@ class TOMRunnerPOM(object):
 				q.condition("other_run_x_"+str(i), Q.fetch_condition("init_run_x_"+str(i)))
 				q.condition("other_run_y_"+str(i), Q.fetch_condition("init_run_y_"+str(i)))
 
-		return Q, q
+		return q
 
 
 	

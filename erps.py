@@ -66,14 +66,7 @@ class randn_erp:
     
     @staticmethod
     def score( X, sz=(1,1), mu=0.0, sigma=1.0 ):
-
-        # print "rand_n score:", np.sum( ss.norm.logpdf( X, loc=mu, scale=sigma ) )
-        # print "with mu:", mu, "and", "sigma:", sigma
-        # print "X: ", X
         s = np.sum( ss.norm.logpdf( X, loc=mu, scale=sigma ) )
-        # hack to help bound the score for the paths
-        # if s < -20:
-            # return -20.0
         return s
 
 

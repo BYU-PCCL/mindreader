@@ -93,7 +93,7 @@ class ProgramTrace(object):
 			new_val = self.cond_data_db[ name ]
 
 			erp_score = erp_class.score( new_val, *args, **kwargs )
-			print ("name:", name, "score:", erp_score)
+			#print ("name:", name, "score:", erp_score)
 			# special case where I have to call the same random variable again
 			# specifically when the start and goal locations are the same
 			# if name in self.trace:

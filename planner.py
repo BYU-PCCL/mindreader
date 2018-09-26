@@ -131,13 +131,13 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, slow=False):
 	sim_path = simplify_path(x1, y1, x2, y2, opt_path)
 	#sim_path = simplify_path(x1, y1, x2, y2, path)
 
-	times = np.arange(0, 800, 20) #600 seconds (10 minute) (5 mintues) 30 20-sec intervals
+	times = np.arange(0, 600, 20) #600 seconds (10 minute) (5 mintues) 30 20-sec intervals
 	# change ^ to be 800 seconds.. 40 20-sec intervals. Making the paths longer...
 	
-	slow = True
+	slow = False
 	slower = False
 	fastest = False
-	normal = False
+	normal = True
 
 	#speed = 1.75/600
 

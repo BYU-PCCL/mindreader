@@ -8,8 +8,157 @@ from numpy import atleast_2d
 import pickle
 from my_rrt import *
 from tqdm import tqdm
-import matplotlib.path as mplPath
 
+from matplotlib import pyplot as plt
+import time
+
+def setup_plot(poly_map, locs=None, scale=1):
+	fig = plt.figure(1)
+	fig.clf()
+	ax = fig.add_subplot(1, 1, 1)
+
+	# plot map
+	x1,y1,x2,y2 = poly_map
+	for i in xrange(x1.shape[0]):
+		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'grey', linewidth=1  )
+
+	# show possible start and goal locations
+	add_locations = True
+	if add_locations:
+		for i in xrange(len(locs)):
+			ax.scatter( locs[i][0] * scale,  locs[i][1] * scale , color="Green", s = 50, marker='+', linestyle='-')
+			ax.scatter( locs[i][0] * scale,  locs[i][1]  * scale, s = 75, facecolors='none', edgecolors='g')
+	return fig, ax
+
+def close_plot(fig, ax, plot_name=None):
+	if plot_name is None:
+		plot_name = str(int(time.time()))+".eps"
+	print "plot_name:", plot_name
+
+	ax.set_ylim(ymax = 1, ymin = 0)
+	ax.set_xlim(xmax = 1, xmin = 0)
+
+	#plt.show()
+	fig.savefig(plot_name, bbox_inches='tight')
+
+
+def plot_outermost_sample(trace, score):
+	
+	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
+	[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
+	[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
+	[ 0.432, 1-0.098 ] ]
+	poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
+	fig, ax = setup_plot(poly_map, locs)
+
+	path = trace["my_plan"]
+	t = trace["t"]
+	for i in range(0, t-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'red', linestyle=":", linewidth=1, label="Agent's Plan")
+		# else:
+		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+	# mark the runner at time t on its plan
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	for i in range(t-1, 29):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+		
+	# mark the runner at time t on its plan
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	path = trace["other_plan"]
+
+	all_t_detected = trace["t_detected"]
+	other_plans = trace["other_plan"]
+	total_detections = 0
+	for j in xrange(len(other_plans)):
+		path = other_plans[j]
+		detections = all_t_detected[j]
+		total_detections += len(detections)
+		# mark the runner at time t on its plan
+		ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='blue')
+
+		for i in range(0, 29):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'grey', linestyle="--", linewidth=1, label="Other's Plan")
+			if i in detections:
+				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+		
+	
+
+	plt.figtext(0.92, 0.85, "Values", horizontalalignment='left', weight="bold") 
+	plt.figtext(0.92, 0.80, "R Start: " +str(trace["init_run_start"]), horizontalalignment='left') 
+	#plt.figtext(0.92, 0.75, "A Goal: " +str(trace["init_run_goal"]), horizontalalignment='left') 
+	#plt.figtext(0.92, 0.75, "C Start: " +str(trace["other_run_start"]), horizontalalignment='left')
+	#plt.figtext(0.92, 0.65, "B Goal: " +str(trace["other_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.70, "time step: " +str(trace["t"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.65, "C detected R count: " +str(total_detections), horizontalalignment='left') 
+	plt.figtext(0.92, 0.60, "score:" + str(score), horizontalalignment='left')
+	#close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/tom/tom_run_and_find-"+str(int(time.time()))+".eps")
+	close_plot(fig, ax, 
+		plot_name="PO_forward_runs/conditioned/single_samples/tom/outer-most_model-"+str(int(time.time()))+".eps")
+
+
+
+
+
+
+
+
+def plot_middlemost_sample(trace, score):
+	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
+	[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
+	[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
+	[ 0.432, 1-0.098 ] ]
+	poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
+	
+	fig, ax = setup_plot(poly_map, locs)
+	
+	path = trace["my_plan"]
+	t = trace["t"]
+	for i in range(0, t-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'blue', linestyle=":", linewidth=1, label="Agent's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+	for i in range(t-1, 29):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'blue', linestyle=":", linewidth=1)
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	# mark the runner at time t on its plan
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='blue')
+
+	path = trace["other_plan"]
+
+	for i in range(0, t-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'orange', linestyle="--", linewidth=1, label="Other's Plan")
+		# else:
+		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+	# mark the runner at time t on its plan
+	ax.scatter( path[t-1][0],  path[t-1][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	for i in range(t-1, 29):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'grey', linestyle="--", linewidth=1, label="Other's Plan")
+		
+	
+
+	plt.figtext(0.92, 0.85, "Values", horizontalalignment='left', weight="bold") 
+	plt.figtext(0.92, 0.80, "R Start: " +str(trace["run_start"]), horizontalalignment='left') 
+	#plt.figtext(0.92, 0.75, "A Goal: " +str(trace["init_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.75, "C Start: " +str(trace["other_run_start"]), horizontalalignment='left')
+	#plt.figtext(0.92, 0.65, "B Goal: " +str(trace["other_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.70, "time step: " +str(trace["t"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.65, "C detected R count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
+	plt.figtext(0.92, 0.60, "score:" + str(score), horizontalalignment='left')
+	#close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/tom/tom_run_and_find-"+str(int(time.time()))+".eps")
+	close_plot(fig, ax, 
+		plot_name="PO_forward_runs/conditioned/single_samples/tom/middle-most_model-"+str(int(time.time()))+".eps")
 
 
 def InitScreen(xdim, ydim):
@@ -33,15 +182,30 @@ def Update():
 		if e.type == MOUSEBUTTONDOWN:
 		    return pygame.mouse.get_pos()
 
+def polygons_to_segments( polygon_list ):
+    X1 = []
+    Y1 = []
+    X2 = []
+    Y2 = []
+    for x in polygon_list:
+        X1.append( x[1:-1,0:1] )
+        Y1.append( x[1:-1,1:2] )
+        X2.append( x[2:,0:1] )
+        Y2.append( x[2:,1:2] )
+    X1 = np.vstack( X1 )
+    Y1 = np.vstack( Y1 )
+    X2 = np.vstack( X2 )
+    Y2 = np.vstack( Y2 )
 
-# not sure why this is still here. Using one in RRT (where they y axis is not flipped)
+    return X1, Y1, X2, Y2
+
 def load_polygons( fn="./paths.txt" ):
     bdata = []
     for x in open( fn ):
         tmp = np.fromstring( x, dtype=float, sep=' ' )
-        tmp = np.reshape( tmp/1000, (-1,2) )
+        tmp = np.reshape( tmp/1000.0, (-1,2) )
         tmp = np.vstack(( np.mean(tmp, axis=0, keepdims=True), tmp, tmp[0,:] ))
-        #tmp[:,1] = 1.0 - tmp[:,1]  # flip on the y axis
+        tmp[:,1] = 1.0 - tmp[:,1]  # flip on the y axis
         bdata.append( tmp )
     return bdata
 
@@ -90,7 +254,7 @@ def load_segs( fn="./paths.txt" ):
 
 		toList.append(toList[0])
 		poly_segs.append(toList)
-		poly_easy.append(mplPath.Path(np.asarray(toList)))
+		poly_easy.append(plt.Path(np.asarray(toList)))
 
 	return poly_segs, poly_easy
 
@@ -333,5 +497,6 @@ def noise_level(intruder_loc, UAV_loc):
 		return 1
 
 	return 0
+
 
 
