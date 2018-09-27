@@ -242,6 +242,7 @@ class TOMRunnerPOM(object):
 		self.run_tom_partial(Q)
 
 	def run_tom_partial(self, Q, path_noise=0.003):
+		
 		rx1,ry1,rx2,ry2 = self.seg_map
 		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
@@ -250,13 +251,16 @@ class TOMRunnerPOM(object):
 		goal_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="init_run_goal" )
 		start = np.atleast_2d( self.locs[start_i] )
 		goal = np.atleast_2d( self.locs[goal_i] )
-
+		
 		# plan using the latent variables of start and goal
 		prev_true_loc =  np.atleast_2d([Q.get_obs("init_run_x_"+str(t-1)), Q.get_obs("init_run_y_"+str(t-1))])
+		
 		my_plan = planner.run_rrt_opt( prev_true_loc, goal, rx1,ry1,rx2,ry2 )
 		u = 1
 		my_noisy_plan = [self.locs[start_i]]
+		
 		for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+			
 			if i < t:
 				# do not sample if already known to be true
 				loc_t = [Q.get_obs("init_run_x_"+str(i)), Q.get_obs("init_run_y_"+str(i))]
@@ -268,7 +272,8 @@ class TOMRunnerPOM(object):
 			my_noisy_plan.append(loc_t)
 		my_noisy_plan.append(my_plan[-1])
 		my_loc = my_noisy_plan[t]
-		assert (len(my_noisy_plan) == 30)
+		
+		assert (len(my_noisy_plan) == 40)
 
 		#---------------- do inference --------------------------------------------
 		other_noisy_plan = None
@@ -287,7 +292,10 @@ class TOMRunnerPOM(object):
 			all_t_detected = []
 			other_plans = []
 			L = self.L
-			all_Qs_scores = np.arange(L)
+			all_Qls_scores = np.arange(L)
+			all_Qls_traces = []
+			all_Qls_obs = []
+
 			for l in xrange(L):
 				
 				q = self.condition_middle_model(Q)
@@ -332,9 +340,14 @@ class TOMRunnerPOM(object):
 				
 				Q_l.keep("other_run_start", q_l["run_start"])
 				Q_l.keep("other_run_goal", q_l["run_goal"])
-				all_Qs_scores[l] = Q_l.get_score()
+				all_Qls_scores[l] = Q_l.get_score()
+				all_Qls_traces.append(Q_l.get_trace())
+				all_Qls_obs.append(Q_l.get_obs())
 
-		Q.keep("mean", np.mean(all_Qs_scores))
+		Q.keep("all_Qls_obs", all_Qls_obs)
+		Q.keep("all_Qls_traces", all_Qls_traces)
+		Q.keep("all_Qls_scores", all_Qls_scores)
+		Q.keep("mean", np.mean(all_Qls_scores))
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("t_detected", all_t_detected)
 		Q.keep("other_plan", other_plans)

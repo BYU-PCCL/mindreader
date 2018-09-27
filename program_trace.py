@@ -33,6 +33,9 @@ class ProgramTrace(object):
 			return self.obs[name]
 		return None
 
+	def fetch_obs(self):
+		return self.obs
+
 	def get_trace(self):
 		return self.trace
 

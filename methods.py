@@ -44,7 +44,7 @@ def close_plot(fig, ax, plot_name=None):
 	fig.savefig(plot_name, bbox_inches='tight')
 
 
-def plot_outermost_sample(trace, score, directory, k):
+def plot_outermost_sample(trace, score, directory, t, k):
 	
 	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
 	[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
@@ -99,7 +99,7 @@ def plot_outermost_sample(trace, score, directory, k):
 	plt.figtext(0.92, 0.60, "score:" + str(score), horizontalalignment='left')
 	#close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/tom/tom_run_and_find-"+str(int(time.time()))+".eps")
 	close_plot(fig, ax, 
-		plot_name=directory+"/t-"+str(trace["t"])+"-outermost-"+"k-"+str(k)+".eps")
+		plot_name=directory+"/t-"+str(trace["t"])+"-outermost-"+"t-"+str(t)+"k-"+str(k)+".eps")
 
 
 

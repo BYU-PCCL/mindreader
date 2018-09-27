@@ -80,14 +80,16 @@ from multiprocessing import Pool
 
 def update_conditions(conditions, trace, t):
 	# assume runner was not seen before (for next inference step)
-	conditions["detected_t_"+str(t)] = False
-	conditions["t"] = conditions["t"]+1
-	return conditions
+	new_conditions = copy.deepcopy(conditions)
+	new_conditions["detected_t_"+str(t)] = False
+	new_conditions["t"] = conditions["t"]+1
+	return new_conditions
 
 def update_observations(observations, trace, t):
-	observations["init_run_x_"+str(t)] = trace["init_run_x_"+str(t)]
-	observations["init_run_y_"+str(t)] = trace["init_run_y_"+str(t)]
-	return observations
+	new_observations = copy.deepcopy(observations)
+	new_observations["init_run_x_"+str(t)] = trace["init_run_x_"+str(t)]
+	new_observations["init_run_y_"+str(t)] = trace["init_run_y_"+str(t)]
+	return new_observations
 
 
 def get_prob_detection_t(trace, K):
@@ -157,7 +159,7 @@ def single_run_model_sarg(x):
 
 def single_run_model(model, observations, conditions):
 	Q = ProgramTrace(model)
-
+	
 	for name in observations.keys():
 		Q.set_obs(name, observations[name])
 	for name in conditions.keys():
@@ -169,8 +171,79 @@ import sys
 import pickle
 from my_rrt import *
 
+# We use K different chasers and continue them through time
+#params = ((model, observations, conditions),)*K # K different params
+def sequential_monte_carlo_par(params, K, T=30):
 
-def sequential_monte_carlo_par(T, model, conditions, observations, K):
+	file_id = str(int(time.time()))
+	directory = "PO_forward_runs/conditioned/SMC_simulations/sim-"+file_id
+	os.mkdir(directory)
+	#model.set_dir(directory)
+	for p in params:
+		p[0].set_dir(directory)
+	detection_probabilities = [0.0]
+	KQ_T = []
+	KQ_T_scores = []
+	print("_______________________________________________")
+	print("K scores:", KQ_T_scores)
+	print("_______________________________________________")
+	for t in tqdm(xrange(1, T-1)):
+		
+		sampled_Q_ks = []
+
+		p = Pool(10)
+		results = p.map(single_run_model_sarg, params)
+		
+		Q_k_scores = np.array((zip(*results))[0])
+		sampled_Q_ks = np.array((zip(*results))[1])
+
+		print("_______________________________________________")
+		print("K scores:", KQ_T_scores)
+		print("_______________________________________________")
+
+		# log_normalizer = logsumexp(Q_k_scores) - np.log(K) 
+		# weights = np.exp(Q_k_scores - log_normalizer - np.log(K))
+		# print ("outer weights:", weights, "log norm:", log_normalizer)
+		
+		# resampled_indexes = np.random.choice([i for i in range(K)], K, replace=True, p=weights) 
+
+		#resampled_Qs = sampled_Q_ks[resampled_indexes]
+
+		#sampled_Q_trace = resampled_Qs[np.random.randint(0,K)] # compute K params and continue (ea obs and cond)
+		#plot_outermost_sample(sampled_Q_trace, log_normalizer, directory, t)
+		
+		KQ_T.append(sampled_Q_ks)
+		KQ_T_scores.append(Q_k_scores)
+
+		updated_params = []
+		i = 0
+		for p in params:
+			conditions = update_observations(p[1], sampled_Q_ks[i], t)
+			observations = update_conditions(p[2], sampled_Q_ks[i], t)
+			updated_params.append((p[0],conditions, observations))
+			plot_outermost_sample(sampled_Q_ks[i], Q_k_scores[i], directory, t, i)
+			i+=1
+		
+		params = tuple(updated_params)
+
+		#detection_probabilities.append(get_prob_detection_t(sampled_Q_trace, K))
+		#print ("detection_probabilities", detection_probabilities)
+
+	# plot probability
+	# fig = plt.figure(1)
+	# fig.clf()
+	# ax = fig.add_subplot(1, 1, 1)
+	# ax.plot(list(xrange(T-1)), detection_probabilities, 'bo')
+	# ax.plot(list(xrange(T-1)), detection_probabilities, 'b--')
+	# ax.set_xlabel("time step")
+	# ax.set_ylabel("probability of detection")
+	# fig.savefig(directory+"/detection-probs.eps", bbox_inches='tight')
+	pickle.dump( [K, KQ_T, KQ_T_scores], open( directory+"/"+file_id+".p", "wb" ))
+	return KQ_T, KQ_T_scores #detection_probabilities
+
+# this is SMC where K is a single param and we resample and choose one
+# chaser sample to continue in time
+def special_sequential_monte_carlo_par(T, model, conditions, observations, K):
 
 	file_id = str(int(time.time()))
 	directory = "PO_forward_runs/conditioned/SMC_simulations/sim-"+file_id
@@ -202,6 +275,7 @@ def sequential_monte_carlo_par(T, model, conditions, observations, K):
 		
 		Q_T.append(sampled_Q_trace)
 
+
 		conditions = update_conditions(conditions, sampled_Q_trace, t)
 		observations = update_observations(observations, sampled_Q_trace, t)
 		detection_probabilities.append(get_prob_detection_t(sampled_Q_trace, K))
@@ -218,8 +292,6 @@ def sequential_monte_carlo_par(T, model, conditions, observations, K):
 	fig.savefig(directory+"/detection-probs.eps", bbox_inches='tight')
 
 	return Q_T, detection_probabilities
-
-
 
 
 def importance_resampling(Q, particles, _print_inner=False, _print_outer=False):

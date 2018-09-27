@@ -10,7 +10,7 @@ import copy
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import cPickle
-from inference_alg import importance_sampling, metroplis_hastings, importance_resampling, sequential_monte_carlo, sequential_monte_carlo_par
+from inference_alg import importance_sampling, metroplis_hastings, importance_resampling, sequential_monte_carlo_par, sequential_monte_carlo
 from program_trace import ProgramTrace
 from planner import * 
 from tqdm import tqdm
@@ -1897,37 +1897,40 @@ if __name__ == '__main__':
 	# -- IN PROGRESS
 	#-----------run TOM with nested importance sampling ------
 	
-	T = 30
-	conditions = {}
-	observations = {}
-	conditions["init_run_start"] = 1
-	conditions["other_run_start"] = 8
-	conditions["t"] = 1
-	#conditions["init_run_x_0"] = locs[1][0]
-	#conditions["init_run_y_0"] = locs[1][1]
-	conditions["detected_t_0"] = False
+	diff_samples = [[2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
+	for samps in diff_samples:
+		T = 30 # default in SMC function
+		conditions = {}
+		observations = {}
+		conditions["init_run_start"] = 4
+		conditions["other_run_start"] = 8
+		conditions["t"] = 1
+		#conditions["init_run_x_0"] = locs[1][0]
+		#conditions["init_run_y_0"] = locs[1][1]
+		conditions["detected_t_0"] = False
 
-	observations["other_run_start"] = 8
-	observations["init_run_x_0"] = locs[1][0]
-	observations["init_run_y_0"] = locs[1][1]
-	K=16
-	L=32
+		observations["other_run_start"] = 8
+		observations["init_run_x_0"] = locs[4][0]
+		observations["init_run_y_0"] = locs[4][1]
+		K=samps[0]
+		L=samps[1]
 
-	# the (inner) nested model
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
-	# full model init
-	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	 	nested_model=runner_model, inner_samples=L, mode="advers") #inf_type="IR")
-	model = tom_runner_model
+		# the (inner) nested model
+		runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, mode="advers")
+		# full model init
+		tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
+		 	nested_model=runner_model, inner_samples=L, mode="advers") #inf_type="IR")
+		model = tom_runner_model
 
-	#Q_T, detection_probabilities = sequential_monte_carlo(T, model, conditions, observations, K)
-	#print "detection probabilities:", detection_probabilities
+		#Q_T, detection_probabilities = sequential_monte_carlo(T, model, conditions, observations, K)
+		#print "detection probabilities:", detection_probabilities
 
-	Q_T, detection_probabilities = sequential_monte_carlo_par(T, model, conditions, observations, K)
+		params = ((model, observations, conditions),)*K # K different params
+		QK_T, QK_T_scores = sequential_monte_carlo_par(params, K)
 
 
 	#cProfile.run("sequential_monte_carlo(T, model, conditions, observations, K)")
-
+	#sequential_monte_carlo(T, model, conditions, observations, K)
 	
 	# #-- run single conditioned sample ---//
 	#advers_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=0, SP=1) #PS=5, SP=32)
