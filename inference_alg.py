@@ -183,7 +183,7 @@ def sequential_monte_carlo_par(T, model, conditions, observations, K):
 		sampled_Q_ks = []
 
 		p = Pool(10)
-		params = ((model, observations, conditions),)*K
+		params = ((model, observations, conditions),)*K # K different params
 		results = p.map(single_run_model_sarg, params)
 		
 		Q_k_scores = np.array((zip(*results))[0])
@@ -197,7 +197,7 @@ def sequential_monte_carlo_par(T, model, conditions, observations, K):
 
 		resampled_Qs = sampled_Q_ks[resampled_indexes]
 
-		sampled_Q_trace = resampled_Qs[np.random.randint(0,K)]
+		sampled_Q_trace = resampled_Qs[np.random.randint(0,K)] # compute K params and continue (ea obs and cond)
 		plot_outermost_sample(sampled_Q_trace, log_normalizer, directory, t)
 		
 		Q_T.append(sampled_Q_trace)
