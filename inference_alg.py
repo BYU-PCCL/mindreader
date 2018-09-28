@@ -131,14 +131,14 @@ def sequential_monte_carlo(T, model, conditions, observations, K):
 
 		log_normalizer = logsumexp(Q_k_scores) - np.log(K) 
 		weights = np.exp(Q_k_scores - log_normalizer - np.log(K))
-		print ("outer weights:", weights, "log norm:", log_normalizer)
+		#print ("outer weights:", weights, "log norm:", log_normalizer)
 		
 		resampled_indexes = np.random.choice([i for i in range(K)], K, replace=True, p=weights) 
 
 		resampled_Qs = sampled_Q_ks[resampled_indexes]
 
 		sampled_Q_trace = resampled_Qs[np.random.randint(0,K)]
-		plot_outermost_sample(sampled_Q_trace, log_normalizer, directory, t)
+		#plot_outermost_sample(sampled_Q_trace, log_normalizer, directory, t)
 		
 		Q_T.append(sampled_Q_trace)
 
@@ -184,16 +184,14 @@ def sequential_monte_carlo_par(params, K, T=30):
 	detection_probabilities = [0.0]
 	KQ_T = []
 	KQ_T_scores = []
-	print("_______________________________________________")
-	print("K scores:", KQ_T_scores)
-	print("_______________________________________________")
 	for t in tqdm(xrange(1, T-1)):
 		
 		sampled_Q_ks = []
 
 		p = Pool(10)
 		results = p.map(single_run_model_sarg, params)
-		
+		p.close()
+		p.join() 
 		Q_k_scores = np.array((zip(*results))[0])
 		sampled_Q_ks = np.array((zip(*results))[1])
 
@@ -221,7 +219,7 @@ def sequential_monte_carlo_par(params, K, T=30):
 			conditions = update_observations(p[1], sampled_Q_ks[i], t)
 			observations = update_conditions(p[2], sampled_Q_ks[i], t)
 			updated_params.append((p[0],conditions, observations))
-			plot_outermost_sample(sampled_Q_ks[i], Q_k_scores[i], directory, t, i)
+			#plot_outermost_sample(sampled_Q_ks[i], Q_k_scores[i], directory, t, i)
 			i+=1
 		
 		params = tuple(updated_params)

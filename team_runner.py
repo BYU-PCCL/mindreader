@@ -1,6 +1,6 @@
 import program_trace as program_trace
 from methods import load_isovist_map, scale_up, direction, dist, load_segs, point_in_obstacle, get_clear_goal
-from methods import plot_middlemost_sample
+from methods import plot_middlemost_sample, plot_outermost_sample
 from my_rrt import *
 import copy
 from scipy.misc import logsumexp
@@ -273,7 +273,7 @@ class TOMRunnerPOM(object):
 		my_noisy_plan.append(my_plan[-1])
 		my_loc = my_noisy_plan[t]
 		
-		assert (len(my_noisy_plan) == 40)
+		assert (len(my_noisy_plan) == 30)
 
 		#---------------- do inference --------------------------------------------
 		other_noisy_plan = None
@@ -351,6 +351,9 @@ class TOMRunnerPOM(object):
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("t_detected", all_t_detected)
 		Q.keep("other_plan", other_plans)
+
+		if randint(1, 10) == 1:
+			plot_outermost_sample(Q.get_trace(), np.mean(all_Qls_scores), self.directory, t, int(time.time()))
 
 
 	# need to look at how I conditioned the previous model

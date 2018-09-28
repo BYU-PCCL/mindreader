@@ -157,8 +157,12 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
             closest_intersection_index = np.argmin( distances )
             new_pt = intersections[ closest_intersection_index:closest_intersection_index+1, : ]
             safety = new_pt - nearest_point
-            safety = scale * 0.001 * safety / np.sqrt( np.sum( safety*safety ) )
+            # print ("new_pt:", new_pt)
+            # print ("nearest_point:", nearest_point)
+            # print ("safety:", safety)
+            safety = scale * 0.0001 * safety / np.sqrt( np.sum( safety*safety ) )
             new_pt = new_pt - safety
+            # print ("new pt:", new_pt)
 
         nodes = np.vstack(( nodes, new_pt ))
         # if np.isnan(np.sum(nodes)):
