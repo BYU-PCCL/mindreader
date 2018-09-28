@@ -149,30 +149,84 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
             new_pt[0,0], 
             new_pt[0,1], 
             endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+        add = True
 
-        if intersection_indicators.any():
+
+        if not intersection_indicators.any():
+
+        	d = pt_line_dist(new_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+
+        	b = np.where(d < .003)
+        	#print b[0]
+        	if len(b[0]) == 0:
+
+	        	nodes = np.vstack(( nodes, new_pt ))
+		        # if np.isnan(np.sum(nodes)):
+		        #     print "new_pt", new_pt
+		        parents = np.vstack(( parents, nearest_ind ))
+
+           
             # calculate nearest intersection and trim new_pt
-            intersections = np.atleast_2d( [ int_x[intersection_indicators], int_y[intersection_indicators] ] ).T
-            distances = distance_to_other_points( nearest_point, intersections )
-            closest_intersection_index = np.argmin( distances )
-            new_pt = intersections[ closest_intersection_index:closest_intersection_index+1, : ]
-            safety = new_pt - nearest_point
-            # print ("new_pt:", new_pt)
-            # print ("nearest_point:", nearest_point)
-            # print ("safety:", safety)
-            safety = scale * 0.0001 * safety / np.sqrt( np.sum( safety*safety ) )
-            new_pt = new_pt - safety
-            # print ("new pt:", new_pt)
+            # intersections = np.atleast_2d( [ int_x[intersection_indicators], int_y[intersection_indicators] ] ).T
+            # distances = distance_to_other_points( nearest_point, intersections )
+            # closest_intersection_index = np.argmin( distances )
+            # new_pt = intersections[ closest_intersection_index:closest_intersection_index+1, : ]
 
-        nodes = np.vstack(( nodes, new_pt ))
+            # safety = new_pt - nearest_point
+            # safety = scale * 0.01 * safety / np.sqrt( np.sum( safety*safety ) )
+            # new_pt = new_pt - safety
+           
+        #nodes = np.vstack(( nodes, new_pt ))
         # if np.isnan(np.sum(nodes)):
         #     print "new_pt", new_pt
-        parents = np.vstack(( parents, nearest_ind ))
+        #parents = np.vstack(( parents, nearest_ind ))
 
     #print('No path found!')
     return []
 
 # ==============================================================
+
+from numpy import arccos, array, dot, pi, cross
+from numpy.linalg import det, norm
+
+# from: https://gist.github.com/nim65s/5e9902cd67f094ce65b0
+def distance_numpy(A, B, P):
+    """ segment line AB, point P, where each one is an array([x, y]) """
+    if all(A == P) or all(B == P):
+        return 0
+    if arccos(dot((P - A) / norm(P - A), (B - A) / norm(B - A))) > pi / 2:
+        return norm(P - A)
+    if arccos(dot((P - B) / norm(P - B), (A - B) / norm(A - B))) > pi / 2:
+        return norm(P - B)
+    return norm(cross(A-B, A-P))/norm(B-A)
+
+
+def pt_line_dist(P, X1, Y1, X2, Y2):
+
+	nom = np.absolute( (Y2-Y1)*P[0][0] - (X2-X1)*P[0][1] + (X2*Y1) - (Y2*X1) )
+	den = np.sqrt((Y2-Y1)**2 + (X2-X1)**2)
+	d = nom/den
+	#XXX maybe works not sure
+	# A = np.zeros((323,2))
+	# A[:,0:1] = endpoint_a_x[0:]
+	# A[:,1:] = endpoint_a_y[0:]
+	# #print A.shape
+
+	# B = np.zeros((323,2))
+	# B[:,0:1] = endpoint_b_x[0:]
+	# B[:,1:] = endpoint_b_y[0:]
+	# #print B.shape
+	# #print P.shape
+
+	# d=np.cross(B-A,P-A)/norm(B-A)
+	return d
+
+
+
+def dist(one, two):
+	xs = one[0][0] - two[0][0]
+	ys = one[0][1] - two[0][1]
+	return np.sqrt(xs**2 + ys**2)
 
 if __name__ == '__main__':
     polygons = load_polygons( "./paths.txt" )
@@ -181,6 +235,8 @@ if __name__ == '__main__':
     goal_pt = np.atleast_2d( [0.9,0.9] )
 
     path = run_rrt_poly( start_pt, goal_pt, polygons, plot=True)
+    print ("len of path:", len(path))
     print ("path:", path)
 
 
+    line_intersect( X1,Y1,X2,Y2, X3,Y3,X4,Y4 )

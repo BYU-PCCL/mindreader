@@ -98,6 +98,8 @@ def simplify_path(x1, y1, x2, y2, orig_path):
 	            last_pt[1], 
 	            x1, y1, x2, y2)
 		if intersection_indicators.any():
+			print ("intersected")
+			print ("i:", i)
 			points.append(orig_path[i-1])
 			points.append(orig_path[i])
 
@@ -154,6 +156,7 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, slow=False):
 		speed = 3.0/600
 
 	walking_path = walk_path(sim_path, speed, times)
+	#return sim_path
 	return walking_path
 
 
@@ -168,78 +171,141 @@ def get_distances(x1, y1, x2, y2, start_pt, goal_pt):
 	#print(np.mean(distances))
 
 
-if __name__ == '__main__':
-    polygons = load_polygons( "./paths.txt" )
-    x1, y1, x2, y2 = polygons_to_segments( polygons )
-    
-    
-    start_pt = np.atleast_2d( [182.0/1000,12.0/1000] )
-    goal_pt = np.atleast_2d( [409.0/1000,353.0/1000] )
 
-    x1, y1, x2, y2 = polygons_to_segments( polygons )
 
-    #path = run_rrt_poly( start_pt, goal_pt, polygons, heat = intensity, plot=False)
-    path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2)
+def close_plot(fig, ax, plot_name=None):
+	if plot_name is None:
+		plot_name = str(int(time.time()))+".eps"
+	print "plot_name:", plot_name
 
-     # Create figure and axes
-    fig = plt.figure(1)
-    fig.clf()
-    ax = fig.add_subplot(1, 1, 1)
+	ax.set_ylim(ymax = 1, ymin = 0)
+	ax.set_xlim(xmax = 1, xmin = 0)
+	ax.get_xaxis().set_visible(False)
+	ax.get_yaxis().set_visible(False)
+
+	#plt.show()
+	fig.savefig(str(int(time.time()))+".eps", bbox_inches='tight')
+
+
+def _run():
+	polygons = load_polygons( "./paths.txt" )
+	x1, y1, x2, y2 = polygons_to_segments( polygons )
+
+
+	start_pt = np.atleast_2d([ 0.241, 1-0.660 ] )
+	goal_pt = np.atleast_2d( [ 0.675, 1-0.075 ] )
+
+	#x1, y1, x2, y2 = polygons_to_segments( polygons )
+
+	#path = run_rrt_poly( start_pt, goal_pt, polygons, heat = intensity, plot=False)
+
+
+	 # Create figure and axes
+	fig = plt.figure(1)
+	fig.clf()
+	ax = fig.add_subplot(1, 1, 1)
 
     #c = np.linspace(0, 10, np_paths.shape[0])
     #img = plt.imread("./cnts_inv.png")
     #ax.imshow(img)
 
-    scale = 1
+	scale = 1
 
-    # plot original RRT path
-    for i in range( 0, len(path)-1 ):
-        ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'b' )
-     
-    iters = 10000
-    std = 1.0/500
-    #new_path =run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2)     
-    new_path = optimize_path(x1, y1, x2, y2, path, iters, std)
+	# plot original RRT path
+	# for i in range( 0, len(path)-1 ):
+	#     ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'b' )
 
-    #plot optimized path
-    # for i in range( 0, len(new_path)-1 ):
-    #    ax.plot( [ new_path[i][0] * scale, new_path[i+1][0] * scale ], [ new_path[i][1] * scale, new_path[i+1][1] * scale], 'green' )
-     
-    # sim_path = simplify_path(x1, y1, x2, y2, new_path)
+	for x in xrange(1):
 
-    # # plot simplification from original RRT path
-    # for i in range( 0, len(sim_path)-1 ):
-    #     ax.plot( [ sim_path[i][0] * scale, sim_path[i+1][0] * scale ], [ sim_path[i][1] * scale, sim_path[i+1][1] * scale], 'limegreen' )
+		# nearest_point = [[0.65052348, 0.83421013]]
+		# new_pt = [[0.69031952, 0.86448016]]
 
-    sim_path = simplify_path(x1, y1, x2, y2, new_path)
+		# int_x, int_y, intersection_indicators = line_intersect( 
+		# 	0, 
+		# 	0, 
+		# 	0, 
+		# 	1, 
+		# 	np.array([0]),np.array([0]),np.array([1]),np.array([0.5]))
 
-    # plot simplification of optimized path
-    for i in range( 0, len(sim_path)-1 ):
-        ax.plot( [ sim_path[i][0] * scale, sim_path[i+1][0] * scale ], [ sim_path[i][1] * scale, sim_path[i+1][1] * scale], 'red' )
-     	#ax.scatter( sim_path[i][0] * scale, sim_path[i][1]  * scale, color="purple")
+		# if intersection_indicators.any():
+		# 	print "INTERSECTED"
+		# 	print 
+		# new_path = [nearest_point, new_pt]
+
+		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2)
+		iters = 100
+		std = 1.0/500
+		#new_path =run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2)     
+		# #new_path = optimize_path(x1, y1, x2, y2, path, iters, std)
+		new_path = path
+		# #plot optimized path
+		for i in range( 0, len(new_path)-1 ):
+			ax.plot( [ new_path[i][0] * scale, new_path[i+1][0] * scale ], [ new_path[i][1] * scale, new_path[i+1][1] * scale], 'green' )
+			ax.scatter( new_path[i][0],  new_path[i][1] , s = 10, facecolors='none', edgecolors='red')
+		# sim_path = simplify_path(x1, y1, x2, y2, new_path)
+
+		# # plot simplification from original RRT path
+		# # for i in range( 0, len(sim_path)-1 ):
+		# # ax.plot( [ sim_path[i][0] * scale, sim_path[i+1][0] * scale ], [ sim_path[i][1] * scale, sim_path[i+1][1] * scale], 'limegreen' )
+
+		# # sim_path = simplify_path(x1, y1, x2, y2, new_path)
+
+		# # # plot simplification of optimized path
+		# # for i in range( 0, len(sim_path)-1 ):
+		# # 	ax.plot( [ sim_path[i][0] * scale, sim_path[i+1][0] * scale ], [ sim_path[i][1] * scale, sim_path[i+1][1] * scale], 'orange' )
+		# # 	ax.scatter( sim_path[i][0],  sim_path[i][1] , s = 25, facecolors='none', edgecolors='red')
+		# # ax.scatter( sim_path[len(sim_path)-1][0],  sim_path[len(sim_path)-1][1] , s = 25, facecolors='none', edgecolors='red')
+
+	 # #    # ax.scatter( start_pt[0,0] * scale, start_pt[0,1]  * scale)
+	 # #    # ax.scatter( goal_pt[0,0] * scale, goal_pt[0,1] * scale)
+		# # plt.ylim((0,scale))
+
+		for i in xrange(x1.shape[0]):
+			ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'grey' )
+			#fig.savefig(str(int(time.time()))+".eps", bbox_inches='tight')
+			#print ("----------", i, x1[i,0], x2[i,0], y1[i,0],  y2[i,0] )
 
 
-    ax.scatter( start_pt[0,0] * scale, start_pt[0,1]  * scale)
-    ax.scatter( goal_pt[0,0] * scale, goal_pt[0,1] * scale)
-    plt.ylim((0,scale))
-
-    for i in xrange(x1.shape[0]):
-    	ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black' )
-
-
-
-
-
-
-    # distances = get_distances(x1, y1, x2, y2, start_pt, goal_pt)
-    # print(np.mean(distances) * 500)
-    # print(np.max(distances) * 500)
-    # print(np.min(distances) * 500)
-    # #print(x1[1,0]) *
-    #print(x1.shape) #(323, 1)
+		# times = np.arange(0, 600, 20)
+		# speed = 1.75/600
+		# path =  walk_path(sim_path, speed, times)
+		# for i in range(0, len(path)-1):
+		# 	# ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+		# 	# 	'black', linestyle="-", linewidth=1, label="Agent's Plan")
+		# 	ax.scatter( path[i][0],  path[i][1] , s = 10, facecolors='none', edgecolors='black')
 
 
 
 
-    plt.show() #boom
-    
+		print new_path
+
+	    # distances = get_distances(x1, y1, x2, y2, start_pt, goal_pt)
+	    # print(np.mean(distances) * 500)
+	    # print(np.max(distances) * 500)
+	    # print(np.min(distances) * 500)
+	    # #print(x1[1,0]) *
+	    #print(x1.shape) #(323, 1)
+
+
+
+
+	plt.show() #boom
+
+import cProfile
+import re
+if __name__ == '__main__':
+	_run()
+	 # cProfile.run('_run()')
+
+	# nearest_point = np.array([0.65052348, 0.83421013])
+	# new_pt = np.array([0.69031952, 0.86448016])
+
+	# safety = new_pt - nearest_point
+	# print ("new_pt:", new_pt)
+	# print ("nearest_point:", nearest_point)
+	# print ("safety:", safety, np.sqrt( np.sum( safety*safety )))
+	# safety = 1 * 0.001 * safety / np.sqrt( np.sum( safety*safety ) )
+	# print ("sagety:", safety)
+	# new_pt = new_pt - safety
+	# print new_pt
+	# 
