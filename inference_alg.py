@@ -195,21 +195,8 @@ def sequential_monte_carlo_par(params, K, T=30):
 		Q_k_scores = np.array((zip(*results))[0])
 		sampled_Q_ks = np.array((zip(*results))[1])
 
-		print("_______________________________________________")
 		print("K scores:", KQ_T_scores)
-		print("_______________________________________________")
 
-		# log_normalizer = logsumexp(Q_k_scores) - np.log(K) 
-		# weights = np.exp(Q_k_scores - log_normalizer - np.log(K))
-		# print ("outer weights:", weights, "log norm:", log_normalizer)
-		
-		# resampled_indexes = np.random.choice([i for i in range(K)], K, replace=True, p=weights) 
-
-		#resampled_Qs = sampled_Q_ks[resampled_indexes]
-
-		#sampled_Q_trace = resampled_Qs[np.random.randint(0,K)] # compute K params and continue (ea obs and cond)
-		#plot_outermost_sample(sampled_Q_trace, log_normalizer, directory, t)
-		
 		KQ_T.append(sampled_Q_ks)
 		KQ_T_scores.append(Q_k_scores)
 
@@ -224,18 +211,6 @@ def sequential_monte_carlo_par(params, K, T=30):
 		
 		params = tuple(updated_params)
 
-		#detection_probabilities.append(get_prob_detection_t(sampled_Q_trace, K))
-		#print ("detection_probabilities", detection_probabilities)
-
-	# plot probability
-	# fig = plt.figure(1)
-	# fig.clf()
-	# ax = fig.add_subplot(1, 1, 1)
-	# ax.plot(list(xrange(T-1)), detection_probabilities, 'bo')
-	# ax.plot(list(xrange(T-1)), detection_probabilities, 'b--')
-	# ax.set_xlabel("time step")
-	# ax.set_ylabel("probability of detection")
-	# fig.savefig(directory+"/detection-probs.eps", bbox_inches='tight')
 	pickle.dump( [K, KQ_T, KQ_T_scores], open( directory+"/"+file_id+".p", "wb" ))
 	return KQ_T, KQ_T_scores #detection_probabilities
 

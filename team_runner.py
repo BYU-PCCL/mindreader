@@ -239,7 +239,7 @@ class TOMRunnerPOM(object):
 
 	# run the model inside this function
 	def run(self, Q):
-		self.run_tom_partial(Q)
+		return self.run_tom_partial(Q)
 
 	def run_tom_partial(self, Q, path_noise=0.003):
 		
@@ -353,7 +353,7 @@ class TOMRunnerPOM(object):
 		Q.keep("other_plan", other_plans)
 
 		plot_outermost_sample(Q.get_trace(), np.mean(all_Qls_scores), self.directory, t, int(time.time()))
-
+		return 1
 
 	# need to look at how I conditioned the previous model
 	def collaborative_nested_inference(self, Q):

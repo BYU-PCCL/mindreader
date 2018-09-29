@@ -60,6 +60,9 @@ class ProgramTrace(object):
 		self.trace = {}
 		self.cur_trace_score = 0.0
 		self.model.run(self)
+		# if not success:
+		# 	print ("ERROR: RRT IS STUCK")
+		# 	return -5000, {}
 		return self.cur_trace_score, self.trace
 
 	def keep(self, name=None, value=None):

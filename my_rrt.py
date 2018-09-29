@@ -89,6 +89,126 @@ def run_rrt_poly( start_pt, goal_pt, polygons, bias=0.75, plot=False, step_limit
     x1, y1, x2, y2 = polygons_to_segments( polygons )
     return run_rrt( start_pt, goal_pt, x1, y1, x2, y2, bias, plot, scale=scale )
 
+#--------------------------------------------------------------------------------------------------
+
+# def run_rrt_blown_up( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  goal_buffer=.005, bias=0.75, plot=False, step_limit=20000, scale=1 ):
+#     # blow everything up by 100 and see if it makes a difference
+#     _scale = 100.0
+#     STEP_SIZE=8
+#     #STEP_SIZE= STEP_SIZE*_scale
+#     start_pt = start_pt*_scale
+#     goal_pt = goal_pt* _scale
+#     endpoint_a_x = endpoint_a_x* _scale
+#     endpoint_a_y = endpoint_a_y*_scale
+#     endpoint_b_x = endpoint_b_x*_scale
+#     endpoint_b_y = endpoint_b_y*_scale
+#     goal_buffer = goal_buffer*_scale
+
+
+#     nodes = start_pt
+#     parents = np.atleast_2d( [0] )
+
+#     for i in range( 0, step_limit ):
+#         random_point = np.random.rand(1,2) * scale
+# #        random_point = Q.rand( sz=(1,2), name="rrt_q_%d"%i ) * scale
+        
+#         # find nearest node
+#         distances = distance_to_other_points( random_point, nodes )
+#         if np.isnan(np.sum(distances)):
+#             return None
+#         nearest_ind = np.argmin( distances )
+
+#         nearest_point = nodes[ nearest_ind:nearest_ind+1, : ]
+
+
+#         # take a step towards the goal
+#         if np.random.rand() > bias:
+#             ndiff = goal_pt - nearest_point
+#         else:
+#             ndiff = random_point - nearest_point
+
+#         # if np.isnan(np.sum( ndiff)):
+#         #     print np.sum(random_point), np.sum(nearest_point), nearest_point, nearest_ind, nodes.shape, distances
+
+#         ndiff = (scale * STEP_SIZE) * ndiff / np.sqrt( np.sum( ndiff*ndiff ) )
+
+#         new_pt = nearest_point + ndiff
+
+#         # we'd like to expand from nearest_point to new_pt.  Does it cross a wall?
+#         int_x, int_y, intersection_indicators = line_intersect( 
+#             nearest_point[0,0], 
+#             nearest_point[0,1], 
+#             new_pt[0,0], 
+#             new_pt[0,1], 
+#             endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+
+
+#         if intersection_indicators.any():
+
+#         	# d = pt_line_dist(new_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+
+#         	# b = np.where(d < .01)
+#         	# #print b[0]
+#         	# if len(b[0]) == 0:
+
+# 	        # 	nodes = np.vstack(( nodes, new_pt ))
+# 		       #  # if np.isnan(np.sum(nodes)):
+# 		       #  #     print "new_pt", new_pt
+# 		       #  parents = np.vstack(( parents, nearest_ind ))
+
+           
+#             #calculate nearest intersection and trim new_pt
+#             intersections = np.atleast_2d( [ int_x[intersection_indicators], int_y[intersection_indicators] ] ).T
+#             distances = distance_to_other_points( nearest_point, intersections )
+#             closest_intersection_index = np.argmin( distances )
+#             new_pt = intersections[ closest_intersection_index:closest_intersection_index+1, : ]
+
+#             safety = new_pt - nearest_point
+#             safety = scale * 0.01 * safety / np.sqrt( np.sum( safety*safety ) )
+#             new_pt = new_pt - safety
+
+#             int_x, int_y, intersection_indicators = line_intersect( 
+#             nearest_point[0,0], 
+#             nearest_point[0,1], 
+#             new_pt[0,0], 
+#             new_pt[0,1], 
+#             endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+
+
+#             if intersection_indicators.any():
+#             	continue
+
+
+        
+#         if distance_to_other_points( new_pt, goal_pt ) < (goal_buffer * scale):
+#         	start_pt = start_pt/_scale
+#         	goal_pt = goal_pt/ _scale
+#         	nodes = np.vstack(( nodes, new_pt ))
+#         	parents = np.vstack(( parents, nearest_ind ))
+#         	path = [ new_pt[0,:]/_scale ]
+#         	while nearest_ind != 0:
+#         		path.append( nodes[nearest_ind,:]/_scale )
+#         		nearest_ind = parents[ nearest_ind, 0 ]
+#         		path.append( nodes[0,:]/_scale )
+#     		path.reverse()
+#     		path.append(goal_pt[0,:])
+
+#     		endpoint_a_x = endpoint_a_x/ _scale
+#     		endpoint_a_y = endpoint_a_y/_scale
+#     		endpoint_b_x = endpoint_b_x/_scale
+#     		endpoint_b_y = endpoint_b_y/_scale
+#     		goal_buffer = goal_buffer/_scale
+#     		STEP_SIZE= STEP_SIZE/_scale
+#     		return path
+           
+#         nodes = np.vstack(( nodes, new_pt ))
+#         parents = np.vstack(( parents, nearest_ind ))
+
+#     #print('No path found!')
+#     return []
+
+#---------------------------------------------------------------------------------------------------
+
 def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y,  goal_buffer=.005, bias=0.75, plot=False, step_limit=20000, scale=1 ):
     nodes = start_pt
     parents = np.atleast_2d( [0] )
@@ -120,7 +240,77 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
 
         new_pt = nearest_point + ndiff
 
+        # if distance_to_other_points( new_pt, goal_pt ) < (goal_buffer * scale):
+        #     #print('i', i)
+        #     path = [ new_pt[0,:] ]
+        #     while nearest_ind != 0:
+        #         path.append( nodes[nearest_ind,:] )
+        #         nearest_ind = parents[ nearest_ind, 0 ]
+        #     path.append( nodes[0,:] )
+
+        #     if plot == True:
+        #         plt.figure()
+        #         for i in range(0, endpoint_a_x.shape[0]):
+        #             plt.plot( [ endpoint_a_x[i], endpoint_b_x[i] ], [ endpoint_a_y[i], endpoint_b_y[i] ], 'k' )
+        #         for i in range( 0, len(path)-1 ):
+        #             plt.plot( [ path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1] ], 'b' )
+        #         plt.scatter( start_pt[0,0], start_pt[0,1] )
+        #         plt.scatter( goal_pt[0,0], goal_pt[0,1] )
+        #         plt.show()
+
+        #     path.reverse()
+        #     path.append(goal_pt[0,:])
+        #     return path
+
+        # we'd like to expand from nearest_point to new_pt.  Does it cross a wall?
+        int_x, int_y, intersection_indicators = line_intersect( 
+            nearest_point[0,0], 
+            nearest_point[0,1], 
+            new_pt[0,0], 
+            new_pt[0,1], 
+            endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+
+
+        if intersection_indicators.any():
+
+        	# d = pt_line_dist(new_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+
+        	# b = np.where(d < .01)
+        	# #print b[0]
+        	# if len(b[0]) == 0:
+
+	        # 	nodes = np.vstack(( nodes, new_pt ))
+		       #  # if np.isnan(np.sum(nodes)):
+		       #  #     print "new_pt", new_pt
+		       #  parents = np.vstack(( parents, nearest_ind ))
+
+           
+            #calculate nearest intersection and trim new_pt
+            intersections = np.atleast_2d( [ int_x[intersection_indicators], int_y[intersection_indicators] ] ).T
+            distances = distance_to_other_points( nearest_point, intersections )
+            closest_intersection_index = np.argmin( distances )
+            new_pt = intersections[ closest_intersection_index:closest_intersection_index+1, : ]
+
+            safety = new_pt - nearest_point
+            safety = scale * 0.01 * safety / np.sqrt( np.sum( safety*safety ) )
+            new_pt = new_pt - safety
+
+            int_x, int_y, intersection_indicators = line_intersect( 
+            nearest_point[0,0], 
+            nearest_point[0,1], 
+            new_pt[0,0], 
+            new_pt[0,1], 
+            endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
+
+
+            if intersection_indicators.any():
+            	continue
+
+
+        
         if distance_to_other_points( new_pt, goal_pt ) < (goal_buffer * scale):
+            nodes = np.vstack(( nodes, new_pt ))
+            parents = np.vstack(( parents, nearest_ind ))
             #print('i', i)
             path = [ new_pt[0,:] ]
             while nearest_ind != 0:
@@ -141,45 +331,9 @@ def run_rrt( start_pt, goal_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoi
             path.reverse()
             path.append(goal_pt[0,:])
             return path
-
-        # we'd like to expand from nearest_point to new_pt.  Does it cross a wall?
-        int_x, int_y, intersection_indicators = line_intersect( 
-            nearest_point[0,0], 
-            nearest_point[0,1], 
-            new_pt[0,0], 
-            new_pt[0,1], 
-            endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
-        add = True
-
-
-        if not intersection_indicators.any():
-
-        	d = pt_line_dist(new_pt, endpoint_a_x, endpoint_a_y, endpoint_b_x, endpoint_b_y)
-
-        	b = np.where(d < .003)
-        	#print b[0]
-        	if len(b[0]) == 0:
-
-	        	nodes = np.vstack(( nodes, new_pt ))
-		        # if np.isnan(np.sum(nodes)):
-		        #     print "new_pt", new_pt
-		        parents = np.vstack(( parents, nearest_ind ))
-
            
-            # calculate nearest intersection and trim new_pt
-            # intersections = np.atleast_2d( [ int_x[intersection_indicators], int_y[intersection_indicators] ] ).T
-            # distances = distance_to_other_points( nearest_point, intersections )
-            # closest_intersection_index = np.argmin( distances )
-            # new_pt = intersections[ closest_intersection_index:closest_intersection_index+1, : ]
-
-            # safety = new_pt - nearest_point
-            # safety = scale * 0.01 * safety / np.sqrt( np.sum( safety*safety ) )
-            # new_pt = new_pt - safety
-           
-        #nodes = np.vstack(( nodes, new_pt ))
-        # if np.isnan(np.sum(nodes)):
-        #     print "new_pt", new_pt
-        #parents = np.vstack(( parents, nearest_ind ))
+        nodes = np.vstack(( nodes, new_pt ))
+        parents = np.vstack(( parents, nearest_ind ))
 
     #print('No path found!')
     return []
@@ -222,11 +376,6 @@ def pt_line_dist(P, X1, Y1, X2, Y2):
 	return d
 
 
-
-def dist(one, two):
-	xs = one[0][0] - two[0][0]
-	ys = one[0][1] - two[0][1]
-	return np.sqrt(xs**2 + ys**2)
 
 if __name__ == '__main__':
     polygons = load_polygons( "./paths.txt" )

@@ -53,7 +53,7 @@ def optimize_path(x1, y1, x2, y2, orig_path, iters, std):
 
 	return points
 
-def walk_path(path, speed, times):
+def walk_path(path, speed, times): #, x1, y1, x2, y2):
 	distances_from_start = [0.0]*len(path)
 	for i in xrange(1, len(path)):
 		distances_from_start[i] = distances_from_start[i-1]+ dist(path[i-1], path[i])
@@ -83,6 +83,15 @@ def walk_path(path, speed, times):
 			locations[time_i] = path[-1]
 
 	assert(len(locations) >= 29)
+
+	# for i in xrange(len(locations)-1):
+	# 	int_x, int_y, back_intersection_indicators = line_intersect( 
+	# 		locations[i][0], 
+	# 		locations[i][1], 
+	# 		locations[i+1][0], 
+	# 		locations[i+1][1], 
+	# 		x1, y1, x2, y2)
+
 	return locations
 
 
@@ -98,8 +107,8 @@ def simplify_path(x1, y1, x2, y2, orig_path):
 	            last_pt[1], 
 	            x1, y1, x2, y2)
 		if intersection_indicators.any():
-			print ("intersected")
-			print ("i:", i)
+			#print ("intersected")
+			#print ("i:", i)
 			points.append(orig_path[i-1])
 			points.append(orig_path[i])
 
@@ -113,20 +122,18 @@ def run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2, slow=False):
 	# if just_need_step:
 	# 	gb = .3
 	cnt = 0
+
+	count = 0
 	while True:
 		path = run_rrt( start_pt, goal_pt, x1, y1, x2, y2, goal_buffer=gb)
 		if not path is None:
 			if len(path) > 1:
 				break
+		count += 1
+		if count >= 50:
+			print ("ERROR:STUCK IN LOOP")
+		#if elapsed_time > 3.0
 
-
-			# 	gb += .002
-			#  	print "expanding rrt goal buffer:", gb
-			#  	cnt +=1
-			#  	if cnt  >= 3:
-			#  		return None # expressing that we are probably inside a building now
-			# else:
-			# 	break
 	iters = 100
 	std = 1.0/500
 	opt_path = optimize_path(x1, y1, x2, y2, path, iters, std)
@@ -215,7 +222,7 @@ def _run():
 	# for i in range( 0, len(path)-1 ):
 	#     ax.plot( [ path[i][0] * scale, path[i+1][0] * scale ], [ path[i][1] * scale, path[i+1][1] * scale], 'b' )
 
-	for x in xrange(1):
+	for x in xrange(10):
 
 		# nearest_point = [[0.65052348, 0.83421013]]
 		# new_pt = [[0.69031952, 0.86448016]]
@@ -236,13 +243,13 @@ def _run():
 		iters = 100
 		std = 1.0/500
 		#new_path =run_rrt_opt(start_pt, goal_pt, x1, y1, x2, y2)     
-		# #new_path = optimize_path(x1, y1, x2, y2, path, iters, std)
-		new_path = path
+		new_path = optimize_path(x1, y1, x2, y2, path, iters, std)
+		#new_path = path
 		# #plot optimized path
 		for i in range( 0, len(new_path)-1 ):
-			ax.plot( [ new_path[i][0] * scale, new_path[i+1][0] * scale ], [ new_path[i][1] * scale, new_path[i+1][1] * scale], 'green' )
-			ax.scatter( new_path[i][0],  new_path[i][1] , s = 10, facecolors='none', edgecolors='red')
-		# sim_path = simplify_path(x1, y1, x2, y2, new_path)
+			#ax.plot( [ new_path[i][0] * scale, new_path[i+1][0] * scale ], [ new_path[i][1] * scale, new_path[i+1][1] * scale], 'green' )
+			ax.scatter( new_path[i][0],  new_path[i][1] , s = 10, facecolors='none', edgecolors='blue')
+		sim_path = simplify_path(x1, y1, x2, y2, new_path)
 
 		# # plot simplification from original RRT path
 		# # for i in range( 0, len(sim_path)-1 ):
@@ -251,10 +258,10 @@ def _run():
 		# # sim_path = simplify_path(x1, y1, x2, y2, new_path)
 
 		# # # plot simplification of optimized path
-		# # for i in range( 0, len(sim_path)-1 ):
-		# # 	ax.plot( [ sim_path[i][0] * scale, sim_path[i+1][0] * scale ], [ sim_path[i][1] * scale, sim_path[i+1][1] * scale], 'orange' )
-		# # 	ax.scatter( sim_path[i][0],  sim_path[i][1] , s = 25, facecolors='none', edgecolors='red')
-		# # ax.scatter( sim_path[len(sim_path)-1][0],  sim_path[len(sim_path)-1][1] , s = 25, facecolors='none', edgecolors='red')
+		for i in range( 0, len(sim_path)-1 ):
+			#ax.plot( [ sim_path[i][0] * scale, sim_path[i+1][0] * scale ], [ sim_path[i][1] * scale, sim_path[i+1][1] * scale], 'orange' )
+			ax.scatter( sim_path[i][0],  sim_path[i][1] , s = 25, facecolors='none', edgecolors='red')
+		ax.scatter( sim_path[len(sim_path)-1][0],  sim_path[len(sim_path)-1][1] , s = 25, facecolors='none', edgecolors='red')
 
 	 # #    # ax.scatter( start_pt[0,0] * scale, start_pt[0,1]  * scale)
 	 # #    # ax.scatter( goal_pt[0,0] * scale, goal_pt[0,1] * scale)
@@ -266,18 +273,18 @@ def _run():
 			#print ("----------", i, x1[i,0], x2[i,0], y1[i,0],  y2[i,0] )
 
 
-		# times = np.arange(0, 600, 20)
-		# speed = 1.75/600
-		# path =  walk_path(sim_path, speed, times)
-		# for i in range(0, len(path)-1):
-		# 	# ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-		# 	# 	'black', linestyle="-", linewidth=1, label="Agent's Plan")
-		# 	ax.scatter( path[i][0],  path[i][1] , s = 10, facecolors='none', edgecolors='black')
+		times = np.arange(0, 600, 20)
+		speed = 1.75/600
+		path =  walk_path(sim_path, speed, times)
+		for i in range(0, len(path)-1):
+			# ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			# 	'black', linestyle="-", linewidth=1, label="Agent's Plan")
+			ax.scatter( path[i][0],  path[i][1] , s = 10, facecolors='none', edgecolors='black')
 
 
 
 
-		print new_path
+		#print new_path
 
 	    # distances = get_distances(x1, y1, x2, y2, start_pt, goal_pt)
 	    # print(np.mean(distances) * 500)

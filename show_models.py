@@ -1932,6 +1932,7 @@ if __name__ == '__main__':
 
 		params = ((model, observations, conditions),)*K # K different params
 		QK_T, QK_T_scores = sequential_monte_carlo_par(params, K)
+		#sequential_monte_carlo(T, model, conditions, observations, K)
 
 
 
