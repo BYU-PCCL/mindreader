@@ -83,7 +83,7 @@ class BasicRunnerPOM(object):
 	def run(self, Q):
 		self.run_basic_partial(Q)
 
-	def run_basic_partial(self, Q, path_noise=0.003):
+	def run_basic_partial(self, Q, path_noise=0.000):
 		rx1,ry1,rx2,ry2 = self.seg_map
 		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
 
@@ -241,7 +241,7 @@ class TOMRunnerPOM(object):
 	def run(self, Q):
 		return self.run_tom_partial(Q)
 
-	def run_tom_partial(self, Q, path_noise=0.003):
+	def run_tom_partial(self, Q, path_noise=0.000):
 		
 		rx1,ry1,rx2,ry2 = self.seg_map
 		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
@@ -254,6 +254,7 @@ class TOMRunnerPOM(object):
 		
 		# plan using the latent variables of start and goal
 		prev_true_loc =  np.atleast_2d([Q.get_obs("init_run_x_"+str(t-1)), Q.get_obs("init_run_y_"+str(t-1))])
+
 		
 		my_plan = planner.run_rrt_opt( prev_true_loc, goal, rx1,ry1,rx2,ry2 )
 		u = 1
@@ -352,8 +353,9 @@ class TOMRunnerPOM(object):
 		Q.keep("t_detected", all_t_detected)
 		Q.keep("other_plan", other_plans)
 
+		#if (randint(0,10) == 1):
 		plot_outermost_sample(Q.get_trace(), np.mean(all_Qls_scores), self.directory, t, int(time.time()))
-		return 1
+		#return 1
 
 	# need to look at how I conditioned the previous model
 	def collaborative_nested_inference(self, Q):

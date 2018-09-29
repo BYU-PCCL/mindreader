@@ -62,7 +62,7 @@ class randn_erp:
     @staticmethod
     def sample( sz=(1,1), mu=0.0, sigma=1.0 ):
         #return mu + sigma*np.random.randn( sz[0], sz[1] )
-        return mu + sigma*np.random.randn()
+        return np.round(mu + sigma*np.random.randn(),3)
     
     @staticmethod
     def score( X, sz=(1,1), mu=0.0, sigma=1.0 ):

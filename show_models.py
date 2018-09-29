@@ -1900,6 +1900,7 @@ if __name__ == '__main__':
 	diff_samples_2 = [[1024,1],[256,4],[64,16],[16,64],[4,256],[1,1024]]
 	#diff_samples = [[2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
 	for samps in diff_samples_2:
+	#for i in xrange(1):
 		T = 30 # default in SMC function
 		conditions = {}
 		observations = {}
