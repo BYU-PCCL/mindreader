@@ -354,7 +354,7 @@ class TOMRunnerPOM(object):
 		Q.keep("other_plan", other_plans)
 
 		#if (randint(0,10) == 1):
-		plot_outermost_sample(Q.get_trace(), np.mean(all_Qls_scores), self.directory, t, int(time.time()))
+		#plot_outermost_sample(Q.get_trace(), np.mean(all_Qls_scores), self.directory, t, int(time.time()))
 		#return 1
 
 	# need to look at how I conditioned the previous model

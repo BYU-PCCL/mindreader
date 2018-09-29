@@ -165,7 +165,9 @@ def single_run_model(model, observations, conditions):
 	for name in conditions.keys():
 		Q.condition(name, conditions[name])
 	score, trace = Q.run_model()
-	return (Q.fetch("mean"), trace)
+	mean = Q.fetch("mean")
+	Q = None
+	return (mean, trace)
 
 import sys
 import pickle
@@ -181,24 +183,27 @@ def sequential_monte_carlo_par(params, K, T=30):
 	#model.set_dir(directory)
 	for p in params:
 		p[0].set_dir(directory)
-	detection_probabilities = [0.0]
-	KQ_T = []
-	KQ_T_scores = []
+
+	# KQ_T = []
+	# KQ_T_scores = []
 	for t in tqdm(xrange(1, T-1)):
 		
-		sampled_Q_ks = []
+		sampled_Q_ks = None
+		Q_k_scores = None
 
-		p = Pool(10)
+		p = Pool(9)
 		results = p.map(single_run_model_sarg, params)
 		p.close()
 		p.join() 
 		Q_k_scores = np.array((zip(*results))[0])
 		sampled_Q_ks = np.array((zip(*results))[1])
 
-		print("K scores:", KQ_T_scores)
+		# print("K scores:", KQ_T_scores)
 
-		KQ_T.append(sampled_Q_ks)
-		KQ_T_scores.append(Q_k_scores)
+		# KQ_T.append(sampled_Q_ks)
+		# KQ_T_scores.append(Q_k_scores)
+		
+		pickle.dump( [K, t, KQ_T, KQ_T_scores], open( directory+"/"+file_id+"_t-"+str(t)+".p", "wb" ))
 
 		updated_params = []
 		i = 0
@@ -211,8 +216,8 @@ def sequential_monte_carlo_par(params, K, T=30):
 		
 		params = tuple(updated_params)
 
-	pickle.dump( [K, KQ_T, KQ_T_scores], open( directory+"/"+file_id+".p", "wb" ))
-	return KQ_T, KQ_T_scores #detection_probabilities
+	#pickle.dump( [K, KQ_T, KQ_T_scores], open( directory+"/"+file_id+".p", "wb" ))
+	# return KQ_T, KQ_T_scores #detection_probabilities
 
 # this is SMC where K is a single param and we resample and choose one
 # chaser sample to continue in time
