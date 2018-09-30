@@ -1898,8 +1898,9 @@ if __name__ == '__main__':
 	#-----------run TOM with nested importance sampling ------
 	diff_samples_1 = [[2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
 	diff_samples_2 = [[1024,1],[256,4],[64,16],[16,64],[4,256],[1,1024]]
+	diff_overnight = [[64,16],[16,64],[4,256],[1,1024], [2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
 	#diff_samples = [[2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
-	for samps in diff_samples_2:
+	for samps in diff_overnight:
 	#for i in xrange(1):
 		T = 30 # default in SMC function
 		conditions = {}
@@ -1917,8 +1918,6 @@ if __name__ == '__main__':
 		K=samps[0]
 		L=samps[1]
 
-		# K=2
-		# L=3
 		print ("--------------------------------------Running case K=", K, "L=", L)
 
 		# the (inner) nested model
@@ -1935,7 +1934,7 @@ if __name__ == '__main__':
 		sequential_monte_carlo_par(params, K)
 		#sequential_monte_carlo(T, model, conditions, observations, K)
 
-		
+
 
 	#cProfile.run("sequential_monte_carlo(T, model, conditions, observations, K)")
 	#sequential_monte_carlo(T, model, conditions, observations, K)

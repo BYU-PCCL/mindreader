@@ -167,6 +167,7 @@ def single_run_model(model, observations, conditions):
 	score, trace = Q.run_model()
 	mean = Q.fetch("mean")
 	Q = None
+	#print trace
 	return (mean, trace)
 
 import sys
@@ -191,10 +192,11 @@ def sequential_monte_carlo_par(params, K, T=30):
 		sampled_Q_ks = None
 		Q_k_scores = None
 
-		p = Pool(9)
+		p = Pool(10)
 		results = p.map(single_run_model_sarg, params)
 		p.close()
 		p.join() 
+
 		Q_k_scores = np.array((zip(*results))[0])
 		sampled_Q_ks = np.array((zip(*results))[1])
 
@@ -203,7 +205,7 @@ def sequential_monte_carlo_par(params, K, T=30):
 		# KQ_T.append(sampled_Q_ks)
 		# KQ_T_scores.append(Q_k_scores)
 		
-		pickle.dump( [K, t, KQ_T, KQ_T_scores], open( directory+"/"+file_id+"_t-"+str(t)+".p", "wb" ))
+		pickle.dump( [K, t, sampled_Q_ks, Q_k_scores], open( directory+"/"+file_id+"_t-"+str(t)+".p", "wb" ))
 
 		updated_params = []
 		i = 0

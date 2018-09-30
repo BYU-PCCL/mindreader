@@ -327,23 +327,27 @@ class TOMRunnerPOM(object):
 					
 					future_detection = Q_l.flip( p=detection_prob, name="detected_t_"+str(i) )
 					
-					Q_l.keep("intersections-t-"+str(i), intersections)
+					#Q_l.keep("intersections-t-"+str(i), intersections)
 
 				
 				# add q trace to Q trace and add q's log likelihood to Q's
 				Q_l.add_trace(name="q_trace", trace=q_l, score=q_score_l)
 
-				Q_l.keep("t_detected", t_detected)
+				# Q_l.keep("t_detected", t_detected)
 				all_t_detected.append(t_detected)
-				Q_l.keep("my_plan", my_noisy_plan)
-				Q_l.keep("other_plan", other_noisy_plan)
+				# Q_l.keep("my_plan", my_noisy_plan)
+				# Q_l.keep("other_plan", other_noisy_plan)
 				other_plans.append(other_noisy_plan)
 				
-				Q_l.keep("other_run_start", q_l["run_start"])
-				Q_l.keep("other_run_goal", q_l["run_goal"])
+				# Q_l.keep("other_run_start", q_l["run_start"])
+				# Q_l.keep("other_run_goal", q_l["run_goal"])
 				all_Qls_scores[l] = Q_l.get_score()
 				all_Qls_traces.append(Q_l.get_trace())
 				all_Qls_obs.append(Q_l.get_obs())
+
+				Q_l = None
+
+				
 
 		Q.keep("all_Qls_obs", all_Qls_obs)
 		Q.keep("all_Qls_traces", all_Qls_traces)
@@ -352,6 +356,8 @@ class TOMRunnerPOM(object):
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("t_detected", all_t_detected)
 		Q.keep("other_plan", other_plans)
+
+
 
 		#if (randint(0,10) == 1):
 		#plot_outermost_sample(Q.get_trace(), np.mean(all_Qls_scores), self.directory, t, int(time.time()))
