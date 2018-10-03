@@ -148,17 +148,25 @@ def sequential_monte_carlo_par(params, K, T=30):
 
 		params = tuple(np.array(params)[resampled_indexes])
 
-		# Q.keep("all_Qls_scores", all_Qls_scores)
-		# Q.keep("mean", np.mean(all_Qls_scores))
-		# Q.keep("my_plan", my_noisy_plan)
-		# Q.keep("t_detected", all_t_detected)
-		# Q.keep("other_plan", other_plans)
-
 		KQ_save = {}
 		KQ_save["log_normalizer"] = log_normalizer
 		KQ_save["norm_weights"] = weights
 		KQ_save["t"] = t
 		KQ_save["K"] = K
+		KQ_save["orig_scores"] = Q_k_scores
+		k_ = 1
+		for Q_trace in sampled_Q_ks:
+			small_Qk = {}
+			small_Qk["all_ql_scores"] = Q_trace["all_ql_scores"]
+			small_Qk["all_Qls_scores"] = Q_trace["all_Qls_scores"]
+			small_Qk["mean"] = Q_trace["mean"]
+			small_Qk["my_plan"] = Q_trace["my_plan"]
+			small_Qk["t_detected_list"] = Q_trace["t_detected"]
+			small_Qk["other_plan"] = Q_trace["other_plan"]
+			
+			KQ_save["orig-"+str(k_)] = small_Qk
+			k_ +=1
+
 		k_ = 1
 		for Q_trace in resampled_Q_ks:
 			small_Qk = {}
@@ -169,8 +177,9 @@ def sequential_monte_carlo_par(params, K, T=30):
 			small_Qk["t_detected_list"] = Q_trace["t_detected"]
 			small_Qk["other_plan"] = Q_trace["other_plan"]
 			
-			KQ_save[str(k_)] = small_Qk
+			KQ_save["resamp-"+str(k_)] = small_Qk
 			k_ +=1
+		
 		
 		pickle.dump( KQ_save, open( directory+"/"+file_id+"_t-"+str(t)+".p", "wb" ))
 		#pickle.dump( [Q_k_scores,sampled_Q_ks,resampled_indexes], open( directory+"/"+file_id+"_t-"+str(t)+"-LARGE.p", "wb" ))
