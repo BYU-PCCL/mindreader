@@ -1896,11 +1896,12 @@ if __name__ == '__main__':
 	import re
 	# -- IN PROGRESS
 	#-----------run TOM with nested importance sampling ------
-	diff_samples_1 = [[2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
+	diff_samples_1 = [[2048,1], [1024,2], [512,4], [256,8], [128,16], [64,32], [32,64], [16,128], [8,256], [4,512], [2,1024], [1,2048]]
+	diff_samples_1_small = [[2048,1], [512,4], [128,16], [64,32], [32,64], [16,128], [4,512], [1,2048]]
 	diff_samples_2 = [[1024,1],[256,4],[64,16],[16,64],[4,256],[1,1024]]
-	diff_overnight = [[64,16],[16,64],[4,256],[1,1024], [2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
+	repeat_test = [[64,32]]
 	#diff_samples = [[2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
-	for samps in diff_overnight:
+	for samps in diff_samples_1_small:
 	#for i in xrange(1):
 		T = 30 # default in SMC function
 		conditions = {}
@@ -1932,6 +1933,7 @@ if __name__ == '__main__':
 
 		params = ((model, observations, conditions),)*K # K different params
 		sequential_monte_carlo_par(params, K)
+
 		#sequential_monte_carlo(T, model, conditions, observations, K)
 
 

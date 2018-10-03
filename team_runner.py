@@ -293,10 +293,10 @@ class TOMRunnerPOM(object):
 			all_t_detected = []
 			other_plans = []
 			L = self.L
-			all_Qls_scores = np.arange(L)
+			all_Qls_scores = []
 			all_Qls_traces = []
 			all_Qls_obs = []
-
+			all_ql_scores = []
 			for l in xrange(L):
 				
 				q = self.condition_middle_model(Q)
@@ -331,7 +331,10 @@ class TOMRunnerPOM(object):
 
 				
 				# add q trace to Q trace and add q's log likelihood to Q's
+				#print "q_score_l:", q_score_l
 				Q_l.add_trace(name="q_trace", trace=q_l, score=q_score_l)
+				all_ql_scores.append(q_score_l)
+				#print "list:", all_ql_scores
 
 				# Q_l.keep("t_detected", t_detected)
 				all_t_detected.append(t_detected)
@@ -341,17 +344,18 @@ class TOMRunnerPOM(object):
 				
 				# Q_l.keep("other_run_start", q_l["run_start"])
 				# Q_l.keep("other_run_goal", q_l["run_goal"])
-				all_Qls_scores[l] = Q_l.get_score()
+				all_Qls_scores.append(Q_l.get_score())
 				all_Qls_traces.append(Q_l.get_trace())
 				all_Qls_obs.append(Q_l.get_obs())
 
-				Q_l = None
-
 				
 
+		#print ("all ql scores:", all_ql_scores)
+		#print ("all_Qls_scores:", all_Qls_scores)
+		Q.keep("all_ql_scores", np.array(all_ql_scores))
 		Q.keep("all_Qls_obs", all_Qls_obs)
 		Q.keep("all_Qls_traces", all_Qls_traces)
-		Q.keep("all_Qls_scores", all_Qls_scores)
+		Q.keep("all_Qls_scores", np.array(all_Qls_scores))
 		Q.keep("mean", np.mean(all_Qls_scores))
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("t_detected", all_t_detected)
