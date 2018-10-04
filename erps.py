@@ -264,9 +264,10 @@ class logflip_erp:
         return np.random.rand( *sz ) < np.exp( lp )
 
     @staticmethod
-    def score( X, sz=None, lp=-0.69 ):
+    def score( X, sz=None, lp=-0.69):
         epsilon = 1e-20
-        return np.sum( X * lp + (1.0-X)*np.log( 1.0 - np.exp(lp)) )
+        sc = np.sum( X * lp + (1.0-X)*np.log( 1.0 - np.exp(lp)) )
+        return -sc
 
     @staticmethod
     def new_var_params( sz=None, lp=-0.69 ):

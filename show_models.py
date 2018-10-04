@@ -1899,9 +1899,10 @@ if __name__ == '__main__':
 	diff_samples_1 = [[2048,1], [1024,2], [512,4], [256,8], [128,16], [64,32], [32,64], [16,128], [8,256], [4,512], [2,1024], [1,2048]]
 	diff_samples_1_small = [[2048,1], [512,4], [128,16], [64,32], [32,64], [16,128], [4,512], [1,2048]]
 	diff_samples_2 = [[1024,1],[256,4],[64,16],[16,64],[4,256],[1,1024]]
-	repeat_test = [[64,32]]
+	repeat_test = [[2048,1], [512,4]]
+	repeat_test = [[1024,1]]
 	#diff_samples = [[2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
-	for samps in diff_samples_1_small:
+	for samps in repeat_test:
 	#for i in xrange(1):
 		T = 30 # default in SMC function
 		conditions = {}
@@ -1911,13 +1912,17 @@ if __name__ == '__main__':
 		conditions["t"] = 1
 		#conditions["init_run_x_0"] = locs[1][0]
 		#conditions["init_run_y_0"] = locs[1][1]
-		conditions["detected_t_0"] = False
+		#conditions["detected_t_0"] = False
+
+		for i in xrange(2, T-1):
+			conditions["detected_t_"+str(i)] = True
 
 		observations["other_run_start"] = 8
 		observations["init_run_x_0"] = locs[4][0]
 		observations["init_run_y_0"] = locs[4][1]
 		K=samps[0]
 		L=samps[1]
+
 
 		print ("--------------------------------------Running case K=", K, "L=", L)
 

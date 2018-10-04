@@ -90,24 +90,32 @@ class BasicRunnerPOM(object):
 		# #------------- model other agent movements (past and future) -------------- 
 		o_start_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="other_run_start" )
 		o_goal_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="other_run_goal" )
+
 		o_start = np.atleast_2d( self.locs[o_start_i] )
 		o_goal = np.atleast_2d( self.locs[o_goal_i] )
 
 		# plan using the latent variables of start and goal
-		other_plan = planner.run_rrt_opt( np.atleast_2d(o_start), 
-		np.atleast_2d(o_goal), rx1,ry1,rx2,ry2 )
+		# other_plan = planner.run_rrt_opt( np.atleast_2d(o_start), 
+		# np.atleast_2d(o_goal), rx1,ry1,rx2,ry2 )
+
+		#print Q.fetch_obs()
+		prev_true_loc =  np.atleast_2d([Q.get_obs("other_run_x_"+str(t-1)), Q.get_obs("other_run_y_"+str(t-1))])
+		#print "prev_true_loc", prev_true_loc
+		other_plan = planner.run_rrt_opt( prev_true_loc, np.atleast_2d(o_goal), rx1,ry1,rx2,ry2 )
+		u = 1
 
 		# add noise to the plan
-		other_noisy_plan = [other_plan[0]]
+		other_noisy_plan = [self.locs[o_start_i]]
 		for i in xrange(1, len(other_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
 			
 			if i < t:
 				# do not sample if already known to be true:
 				loc_t = [Q.get_obs(name="other_run_x_"+str(i)), Q.get_obs(name="other_run_y_"+str(i))]
 			else:
-				loc_x = Q.randn( mu=other_plan[i][0], sigma=path_noise, name="other_run_x_"+str(i) )
-				loc_y = Q.randn( mu=other_plan[i][1], sigma=path_noise, name="other_run_y_"+str(i) )
+				loc_x = Q.randn( mu=other_plan[u][0], sigma=path_noise, name="other_run_x_"+str(i) )
+				loc_y = Q.randn( mu=other_plan[u][1], sigma=path_noise, name="other_run_y_"+str(i) )
 				loc_t = [loc_x, loc_y]
+				u+=1
 			other_noisy_plan.append(loc_t)
 		other_noisy_plan.append(other_plan[-1])
 		
@@ -142,7 +150,7 @@ class BasicRunnerPOM(object):
 			for i in xrange(0, PATH_LIMIT):
 				cur_loc = scale_up(my_noisy_plan[i])
 				intersections = None
-				detection_prob = 0.001
+				detection_prob = 0.1
 				# face the runner if within certain radius
 				if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
 					fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
@@ -152,7 +160,7 @@ class BasicRunnerPOM(object):
 					other_loc = scale_up(other_noisy_plan[i])
 					will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
 					if will_other_be_seen:
-						detection_prob = 0.999
+						detection_prob = 0.9
 						t_detected.append(i)
 
 				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
@@ -179,7 +187,7 @@ class BasicRunnerPOM(object):
 			for i in xrange(0, PATH_LIMIT):
 				other_loc = scale_up(other_noisy_plan[i])
 				intersections = None
-				detection_prob = .001
+				detection_prob = -0.0001
 				# face the runner if within certain radius
 				if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
 					# -----if other is looking for me
@@ -195,9 +203,13 @@ class BasicRunnerPOM(object):
 
 					#print will_I_be_seen
 					if will_I_be_seen:
-						detection_prob = .999
+						detection_prob = -1.0
 						t_detected.append(i)
-				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+
+				
+				future_detection = Q.clflip( lp=detection_prob, name="detected_t_"+str(i) )
+
+				#future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
 				
 				Q.keep("intersections-t-"+str(i), intersections)
 
@@ -253,9 +265,9 @@ class TOMRunnerPOM(object):
 		goal = np.atleast_2d( self.locs[goal_i] )
 		
 		# plan using the latent variables of start and goal
+		
 		prev_true_loc =  np.atleast_2d([Q.get_obs("init_run_x_"+str(t-1)), Q.get_obs("init_run_y_"+str(t-1))])
 
-		
 		my_plan = planner.run_rrt_opt( prev_true_loc, goal, rx1,ry1,rx2,ry2 )
 		u = 1
 		my_noisy_plan = [self.locs[start_i]]
@@ -300,6 +312,9 @@ class TOMRunnerPOM(object):
 			for l in xrange(L):
 				
 				q = self.condition_middle_model(Q)
+				# print ("Q obs:", Q.fetch_obs())
+				# print ("q obs:", q.fetch_obs())
+				# raw_input()
 				Q_l = copy.deepcopy(Q)
 				q_score_l, q_l = q.run_model()
 				#plot_middlemost_sample(q_l, q_score_l, self.directory)
@@ -312,7 +327,7 @@ class TOMRunnerPOM(object):
 				for i in xrange(0, PATH_LIMIT):
 					cur_loc = scale_up(my_noisy_plan[i])
 					intersections = None
-					detection_prob = .001
+					detection_prob = -.0001
 					# face the runner if within certain radius
 					if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
 						fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
@@ -322,13 +337,18 @@ class TOMRunnerPOM(object):
 						other_loc = scale_up(other_noisy_plan[i])
 						will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
 						if will_other_be_seen:
-							detection_prob = .999
+							detection_prob = -1
+							#print ("chaser detected runner")
 							t_detected.append(i)
 					
-					future_detection = Q_l.flip( p=detection_prob, name="detected_t_"+str(i) )
+					#future_detection = Q_l.flip( p=detection_prob, name="detected_t_"+str(i) )
 					
-					#Q_l.keep("intersections-t-"+str(i), intersections)
+					future_detection = Q.lflip( lp=detection_prob, name="detected_t_"+str(i))
 
+					#raw_input()
+					#Q_l.keep("intersections-t-"+str(i), intersections)
+				# print ("tested chaser with runner")
+				# raw_input()
 				
 				# add q trace to Q trace and add q's log likelihood to Q's
 				#print "q_score_l:", q_score_l
@@ -435,13 +455,14 @@ class TOMRunnerPOM(object):
 		#XXX just for testing purposes XXX remove in real simulation
 		#q.condition("run_goal", Q.get_obs("other_run_goal"))
 
-		for i in xrange(1, 30):
+		for i in xrange(0, 29):
 			# the runner wants all detections to be False
 			q.condition("detected_t_"+str(i), False)
 			# assumes that the chaser's runner has a perfect knowledge of the chaser
-			if i < t:
+			if i <  t:
 				q.set_obs("other_run_x_"+str(i), Q.get_obs("init_run_x_"+str(i)))
 				q.set_obs("other_run_y_"+str(i), Q.get_obs("init_run_y_"+str(i)))
+				
 
 		return q
 
