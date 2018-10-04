@@ -14,9 +14,15 @@ from multiprocessing import Pool
 
 def update_conditions(conditions, trace, t):
 	# assume runner was not seen before (for next inference step)
-	new_conditions = copy.deepcopy(conditions)
+	#new_conditions = copy.deepcopy(conditions)
 	#new_conditions["detected_t_"+str(t)] = False
+	new_conditions = {}
 	new_conditions["t"] = conditions["t"]+1
+	new_conditions["init_run_start"] = 4
+	new_conditions["other_run_start"] = 8
+	T=30
+	for i in xrange(t, T-1):
+		new_conditions["detected_t_"+str(i)] = True
 	return new_conditions
 
 def update_observations(observations, trace, t):
@@ -63,7 +69,7 @@ def sequential_monte_carlo(T, model, conditions, observations, K):
 			sampled_Q_ks.append(Q_trace_k)
 		sampled_Q_ks = np.array(sampled_Q_ks)
 
-		raw_input()
+		#raw_input()
 
 		log_normalizer = logsumexp(Q_k_scores) - np.log(K) 
 		weights = np.exp(Q_k_scores - log_normalizer - np.log(K))

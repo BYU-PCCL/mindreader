@@ -2,7 +2,7 @@ import autograd.numpy as np
 import scipy.stats as ss
 import pickle
 import sys
-
+import copy
 from erps import *
 
 
@@ -24,6 +24,27 @@ class ProgramTrace(object):
 		self.lflip = self.make_erp( logflip_erp )
 		self.clflip = self.make_erp( complogflip_erp )
 		self.trnorm = self.make_erp( truncn_erp )
+
+	def get_copy(self):
+		q = ProgramTrace()
+
+		q.model = self.model # can share
+		q.cond_data_db = copy.deepcopy(self.cond_data_db)
+		q.cur_trace_score = copy.deepcopy(self.cur_trace_score)
+		q.cache = copy.deepcopy(self.cache)
+		q.trace = copy.deepcopy(self.trace)
+		q.obs = copy.deepcopy(self.obs)
+
+		q.choice = q.make_erp( choice_erp )
+		q.randn = q.make_erp( randn_erp )
+		q.flip = q.make_erp( flip_erp )
+		q.rand = q.make_erp( rand_erp )
+		q.beta = q.make_erp( beta_erp )
+		q.lflip = q.make_erp( logflip_erp )
+		q.clflip = q.make_erp( complogflip_erp )
+		q.trnorm = q.make_erp( truncn_erp )
+		return q
+
 
 	def set_obs(self, name=None, value=None):
 		self.obs[name] = value
@@ -108,7 +129,8 @@ class ProgramTrace(object):
 			# 	self.cur_trace_score -= pre_score
 
 			self.cur_trace_score += erp_score
-			#print ("name:", name, "score:", erp_score, "total score:", self.cur_trace_score)
+			#print ("name:", name, "score:", erp_score)
+			#print  ("-------------------------------------------total score:", self.cur_trace_score)
 		else:
 		    # we always sample from the prior
 			new_val = erp_class.sample( *args, **kwargs )

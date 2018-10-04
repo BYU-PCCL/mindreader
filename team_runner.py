@@ -309,13 +309,13 @@ class TOMRunnerPOM(object):
 			all_Qls_traces = []
 			all_Qls_obs = []
 			all_ql_scores = []
+			#print "init Q score:", Q.get_score()
 			for l in xrange(L):
-				
 				q = self.condition_middle_model(Q)
 				# print ("Q obs:", Q.fetch_obs())
 				# print ("q obs:", q.fetch_obs())
 				# raw_input()
-				Q_l = copy.deepcopy(Q)
+				Q_l = Q.get_copy()
 				q_score_l, q_l = q.run_model()
 				#plot_middlemost_sample(q_l, q_score_l, self.directory)
 				other_noisy_plan = q_l["my_plan"]
@@ -343,7 +343,9 @@ class TOMRunnerPOM(object):
 					
 					#future_detection = Q_l.flip( p=detection_prob, name="detected_t_"+str(i) )
 					
-					future_detection = Q.lflip( lp=detection_prob, name="detected_t_"+str(i))
+					future_detection = Q_l.lflip( lp=detection_prob, name="detected_t_"+str(i))
+					#print "REAL Q score after:", Q.get_score()
+					#print "Q score before:", Q_l.get_score()
 
 					#raw_input()
 					#Q_l.keep("intersections-t-"+str(i), intersections)
