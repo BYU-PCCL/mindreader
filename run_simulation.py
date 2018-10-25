@@ -423,9 +423,9 @@ def run_simulation(sim_id, locs, seg_map, isovist, polys, epolys):
 
 		# run inference
 		if naive_chaser:
-			post_sample_traces = run_inference(Q, post_samples=3, samples=6)
+			post_sample_traces = run_inference(Q, post_samples=64, samples=32)
 		else:
-			post_sample_traces = run_inference(Q, post_samples=1, samples=3) # nested inference
+			post_sample_traces = run_inference(Q, post_samples=64, samples=32) # nested inference
 
 		exp_next_step, exp_enf_path = rand_expected_future_step(post_sample_traces, "enf_plan")
 
