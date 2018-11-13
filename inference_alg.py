@@ -118,18 +118,19 @@ from my_rrt import *
 
 # We use K different chasers and continue them through time
 #params = ((model, observations, conditions),)*K # K different params
-def sequential_monte_carlo_par(params, K, T=30):
+def sequential_monte_carlo_par(params, K, T=30, t_start=1):
 
 	file_id = str(int(time.time()))
 	directory = "PO_forward_runs/conditioned/SMC_simulations/resamp-sim-"+file_id
 	os.mkdir(directory)
+	print ("Directory:", directory)
 	#model.set_dir(directory)
 	for p in params:
 		p[0].set_dir(directory)
 
 	# KQ_T = []
 	# KQ_T_scores = []
-	for t in tqdm(xrange(1, T-1)):
+	for t in tqdm(xrange(t_start, T-1)):
 		
 		sampled_Q_ks = None
 		Q_k_scores = None
@@ -161,10 +162,25 @@ def sequential_monte_carlo_par(params, K, T=30):
 		KQ_save["K"] = K
 		KQ_save["orig_scores"] = Q_k_scores
 		k_ = 1
+		# For each K trace
 		for Q_trace in sampled_Q_ks:
 			small_Qk = {}
+			# Get L trace information
 			small_Qk["all_ql_scores"] = Q_trace["all_ql_scores"]
 			small_Qk["all_Qls_scores"] = Q_trace["all_Qls_scores"]
+
+			# Get L imaginary chaser information
+			combined_single_K_and_L_traces = Q_trace["all_Qls_traces"]
+			L_imaginary_chaser_plans = []
+			for Ql_trace in combined_single_K_and_L_traces:
+				runner_trace = Ql_trace["q_trace"]
+				imaginary_chaser_plan = runner_trace["other_plan"]
+				L_imaginary_chaser_plans.append(imaginary_chaser_plan)
+
+			small_Qk["L_imaginary_chaser_plans"] = L_imaginary_chaser_plans
+
+
+			# details of kth trace
 			small_Qk["mean"] = Q_trace["mean"]
 			small_Qk["my_plan"] = Q_trace["my_plan"]
 			small_Qk["t_detected_list"] = Q_trace["t_detected"]
@@ -178,6 +194,18 @@ def sequential_monte_carlo_par(params, K, T=30):
 			small_Qk = {}
 			small_Qk["all_ql_scores"] = Q_trace["all_ql_scores"]
 			small_Qk["all_Qls_scores"] = Q_trace["all_Qls_scores"]
+
+			# Get L imaginary chaser information
+			combined_single_K_and_L_traces = Q_trace["all_Qls_traces"]
+			L_imaginary_chaser_plans = []
+			for Ql_trace in combined_single_K_and_L_traces:
+				runner_trace = Ql_trace["q_trace"]
+				imaginary_chaser_plan = runner_trace["other_plan"]
+				L_imaginary_chaser_plans.append(imaginary_chaser_plan)
+
+			small_Qk["L_imaginary_chaser_plans"] = L_imaginary_chaser_plans
+
+
 			small_Qk["mean"] = Q_trace["mean"]
 			small_Qk["my_plan"] = Q_trace["my_plan"]
 			small_Qk["t_detected_list"] = Q_trace["t_detected"]
