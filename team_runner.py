@@ -11,9 +11,6 @@ import planner
 import time
 from random import randint
 from program_trace import ProgramTrace
-from inference_alg import importance_sampling, metroplis_hastings, importance_resampling
-
-
 
 class BasicRunner(object):
 	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
@@ -244,13 +241,24 @@ class TOMRunnerPOM(object):
 		self.mode = mode # advers for adversarial , collab for collaborative
 
 		self.directory = None
+		self.id = None
+
 
 	def set_dir(self, directory):
 		self.directory = directory
-		
 
+	def get_dir(self):
+		return self.directory
+
+	def set_id(self, _id):
+		self.id = _id
+
+	def get_id(self):
+		return self.id
+		
 	# run the model inside this function
 	def run(self, Q):
+
 		return self.run_tom_partial(Q)
 
 	def run_tom_partial(self, Q, path_noise=0.000):
@@ -263,6 +271,7 @@ class TOMRunnerPOM(object):
 		goal_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="init_run_goal" )
 		start = np.atleast_2d( self.locs[start_i] )
 		goal = np.atleast_2d( self.locs[goal_i] )
+		#print "HERE:", goal_i, goal
 		
 		# plan using the latent variables of start and goal
 		
@@ -271,6 +280,7 @@ class TOMRunnerPOM(object):
 		my_plan = planner.run_rrt_opt( prev_true_loc, goal, rx1,ry1,rx2,ry2 )
 		u = 1
 		my_noisy_plan = [self.locs[start_i]]
+
 		
 		for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
 			
@@ -285,6 +295,8 @@ class TOMRunnerPOM(object):
 			my_noisy_plan.append(loc_t)
 		my_noisy_plan.append(my_plan[-1])
 		my_loc = my_noisy_plan[t]
+
+
 		
 		#assert (len(my_noisy_plan) == 30)
 
@@ -310,13 +322,16 @@ class TOMRunnerPOM(object):
 			all_Qls_obs = []
 			all_ql_scores = []
 			#print "init Q score:", Q.get_score()
+
 			for l in xrange(L):
 				q = self.condition_middle_model(Q)
 				# print ("Q obs:", Q.fetch_obs())
 				# print ("q obs:", q.fetch_obs())
 				# raw_input()
 				Q_l = Q.get_copy()
+				#print "---------running runner model--------------"
 				q_score_l, q_l = q.run_model()
+				#print '----------running rest of chaser model-----------'
 				#plot_middlemost_sample(q_l, q_score_l, self.directory)
 				other_noisy_plan = q_l["my_plan"]
 
@@ -338,22 +353,12 @@ class TOMRunnerPOM(object):
 						will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
 						if will_other_be_seen:
 							detection_prob = -1
-							#print ("chaser detected runner")
 							t_detected.append(i)
 					
 					#future_detection = Q_l.flip( p=detection_prob, name="detected_t_"+str(i) )
 					
 					future_detection = Q_l.lflip( lp=detection_prob, name="detected_t_"+str(i))
-					#print "REAL Q score after:", Q.get_score()
-					#print "Q score before:", Q_l.get_score()
-
-					#raw_input()
-					#Q_l.keep("intersections-t-"+str(i), intersections)
-				# print ("tested chaser with runner")
-				# raw_input()
-				
-				# add q trace to Q trace and add q's log likelihood to Q's
-				#print "q_score_l:", q_score_l
+					
 				Q_l.add_trace(name="q_trace", trace=q_l, score=q_score_l)
 				all_ql_scores.append(q_score_l)
 				#print "list:", all_ql_scores
@@ -382,6 +387,9 @@ class TOMRunnerPOM(object):
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("t_detected", all_t_detected)
 		Q.keep("other_plan", other_plans)
+
+		#update actual score of Q.
+		Q.cur_trace_score = np.mean(all_Qls_scores)
 
 
 
@@ -464,7 +472,8 @@ class TOMRunnerPOM(object):
 			if i <  t:
 				q.set_obs("other_run_x_"+str(i), Q.get_obs("init_run_x_"+str(i)))
 				q.set_obs("other_run_y_"+str(i), Q.get_obs("init_run_y_"+str(i)))
-				
+		
+		#print ("runner conditioned vals:", q.cond_data_db)
 
 		return q
 

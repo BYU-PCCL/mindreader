@@ -101,6 +101,7 @@ class ProgramTrace(object):
 	def add_trace(self, name=None, trace=None, score=None):
 		self.keep(name=name, value=trace)
 		self.cur_trace_score += score
+		#print ("trace cur score:", self.cur_trace_score - score, "added trace:", name, "trace score:", score, "new total score:", self.cur_trace_score)
 
 	def make_erp( self, erp_class ):
 		return lambda *args, **kwargs: self.do_erp( erp_class, *args, **kwargs )
@@ -129,6 +130,7 @@ class ProgramTrace(object):
 			# 	self.cur_trace_score -= pre_score
 
 			self.cur_trace_score += erp_score
+			#print "name:", name, "score:", erp_score, "cur_trace_score:", self.cur_trace_score
 			#print ("name:", name, "score:", erp_score)
 			#print  ("-------------------------------------------total score:", self.cur_trace_score)
 		else:

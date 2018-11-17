@@ -504,3 +504,27 @@ def noise_level(intruder_loc, UAV_loc):
 
 
 
+
+def plot_detection_scenario(chaser_plan, runner_plan):
+
+	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
+	[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
+	[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
+	[ 0.432, 1-0.098 ] ]
+	poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
+	
+	fig, ax = setup_plot(poly_map, locs)
+	
+	path = chaser_plan
+	for i in range(0, len(path)-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'orange', linestyle=":", linewidth=1, label="Chaser's Plan")
+	
+	path = runner_plan
+	for i in range(0, len(path)-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'blue', linestyle=":", linewidth=1, label="Chaser's Plan")
+
+
+	close_plot(fig, ax, 
+		plot_name="test-2.eps")

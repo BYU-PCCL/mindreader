@@ -10,7 +10,7 @@ import copy
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import cPickle
-from inference_alg import importance_sampling, metroplis_hastings, importance_resampling, sequential_monte_carlo_par, sequential_monte_carlo
+from inference_alg import sequential_monte_carlo_par #, sequential_monte_carlo
 from program_trace import ProgramTrace
 from planner import * 
 from tqdm import tqdm
@@ -1894,28 +1894,18 @@ if __name__ == '__main__':
 
 	import cProfile
 	import re
-	# -- IN PROGRESS
+
+
 	#-----------run TOM with nested importance sampling ------
 	diff_samples_1 = [[2048,1], [1024,2], [512,4], [256,8], [128,16], [64,32], [32,64], [16,128], [8,256], [4,512], [2,1024], [1,2048]]
-	diff_samples_1_small = [[2048,1], [512,4], [128,16], [64,32], [32,64], [16,128], [4,512], [1,2048]]
-	diff_samples_2 = [[1024,1],[256,4],[64,16],[16,64],[4,256],[1,1024]]
-	repeat_test = [[512,4], [128,16], [64,32]]
-	repeat_test = [[128,16],[128,16],[128,16],[128,16],[128,16],[128,16],[128,16],[128,16],[128,16], 
-					[16,128], [16,128], [16,128]]
-	repeat_test = [[16,128], [16,128], [16,128], [16,128], [16,128], [16,128], [32,64], [32,64], [32,64], [32,64], [32,64], [32,64], [32,64], [32,64], [32,64]]
-	#diff_samples = [[2048,1],[512,4],[128,16],[32,64], [8,256], [2,1024], [1,2048], [4,512], [16,128], [64,32], [256,8], [1024,2]]
-	repeat_test = [[2048,1],[2048,1],[2048,1],[2048,1],[2048,1],[2048,1],[2048,1],[2048,1],[2048,1]]
+	
 	for samps in repeat_test:
-	#for i in xrange(1):
 		T = 30 # default in SMC function
 		conditions = {}
 		observations = {}
 		conditions["init_run_start"] = 4
 		conditions["other_run_start"] = 8
 		conditions["t"] = 1
-		#conditions["init_run_x_0"] = locs[1][0]
-		#conditions["init_run_y_0"] = locs[1][1]
-		#conditions["detected_t_0"] = False
 
 		for i in xrange(2, T-1):
 			conditions["detected_t_"+str(i)] = True
