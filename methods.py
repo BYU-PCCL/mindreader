@@ -12,6 +12,45 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 import time
 
+
+def get_goal(start, Q):
+
+	if start == 0:
+		n=4
+		goal =  np.random.choice( [6,7,8,9], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 1:
+		n=4
+		goal =  np.random.choice( [6,7,8,9], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 2:
+		n=4
+		goal =  np.random.choice( [6,4,8,9], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 3:
+		n=2
+		goal =  np.random.choice( [8,9], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 4:
+		n=4
+		goal =  np.random.choice( [2,7,8,9], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 5:
+		n=3
+		goal =  np.random.choice( [8,9,7], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 6:
+		n=5
+		goal =  np.random.choice( [7,1,0,8,2], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 7:
+		n=5
+		goal =  np.random.choice( [9,6,4,0,1], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 8:
+		n=6
+		goal =  np.random.choice( [1,0,3,5,4,2], p=(1.0/n)*np.ones((1,n))[0] )
+	if start == 9:
+		n=6
+		goal =  np.random.choice( [7,4,5,2,1,0], p=(1.0/n)*np.ones((1,n))[0] )
+
+	Q.trace["run_goal"] = goal 
+	return goal, Q
+
+
+
 def setup_plot(poly_map, locs=None, scale=1):
 	fig = plt.figure(1)
 	fig.clf()
