@@ -11,6 +11,7 @@ import planner
 import time
 from random import randint
 from program_trace import ProgramTrace
+from methods import get_goal
 
 class BasicRunner(object):
 	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
@@ -120,6 +121,9 @@ class BasicRunnerPOM(object):
 		#------------- model agent's own movements (past and future) --------------
 		start_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="run_start" )
 		goal_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="run_goal" )
+
+		#insert as a way to get goals not too close
+		goal_i, Q = get_goal(start_i, Q)
 
 		start = np.atleast_2d( self.locs[start_i] )
 		goal = np.atleast_2d( self.locs[goal_i] )
@@ -467,6 +471,7 @@ class TOMRunnerPOM(object):
 
 		for i in xrange(0, 29):
 			# the runner wants all detections to be False
+			# ****** NEED *****
 			q.condition("detected_t_"+str(i), False)
 			# assumes that the chaser's runner has a perfect knowledge of the chaser
 			if i <  t:
